@@ -84,6 +84,7 @@ type: custom:dockhand-mini-card
 type: custom:dockhand-card
 environment: Docker host
 title: Docker
+dockhand_url: http://192.168.1.10:3000
 show_logo: true
 show_stats: true
 show_counts: true
@@ -98,6 +99,7 @@ language: fr
 type: custom:dockhand-mini-card
 environment: Docker host
 title: Docker
+dockhand_url: http://192.168.1.10:3000
 show_logo: true
 show_updates: true
 language: fr
@@ -110,6 +112,7 @@ language: fr
 | `environment` | both | First environment | Dockhand environment to display: its name (as shown in Dockhand) or its Home Assistant device id (set by the visual editor) |
 | `title` | both | Environment name | Card title |
 | `show_logo` | both | `true` | Show the Dockhand logo |
+| `dockhand_url` | both | Detected | Address opened in a new tab when clicking the logo. Defaults to the Dockhand web UI known by the integration, or [dockhand.pro](https://dockhand.pro) if none |
 | `show_stats` | full | `true` | CPU, memory and running containers gauges |
 | `show_counts` | full | `true` | Stacks, images, volumes, networks and updates counters |
 | `show_stacks` | full | `true` | Stacks list |

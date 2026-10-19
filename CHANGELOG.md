@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### ✨ Features
+
+- Clicking the Dockhand logo opens the Dockhand web UI in a new tab. The address is detected from the integration and can be set with the new `dockhand_url` option (also in the visual editor). Falls back to [dockhand.pro](https://dockhand.pro).
+
 ## 1.0.0
 
 First release of the Dockhand cards for Home Assistant, built for the [Dockhand integration](https://github.com/raetha/ha-dockhand).

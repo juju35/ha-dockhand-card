@@ -11,6 +11,7 @@ const entity = (entity_id, device_id, translation_key, state, attributes = {}) =
 };
 
 device("env", "Docker host", "Environment");
+devices.env.configuration_url = "http://192.168.1.10:3000/settings?tab=environments&edit=1";
 device("grp_c", "Docker host – Containers", "Environment Group", "env");
 device("grp_s", "Docker host – Stacks", "Environment Group", "env");
 

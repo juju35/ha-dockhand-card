@@ -9,6 +9,7 @@
 
 const VERSION = "__VERSION__";
 const IMG_LOGO = "__IMG_LOGO__";
+const DOCKHAND_SITE = "https://dockhand.pro";
 
 const ICONS = {
   cpu: "M6,4H18V5H21V7H18V9H21V11H18V13H21V15H18V17H21V19H18V20H6V19H3V17H6V15H3V13H6V11H3V9H6V7H3V5H6V4M11,15V18H12V15H11M13,15V18H14V15H13M15,15V18H16V15H15Z",
@@ -63,6 +64,7 @@ const STRINGS = {
     environment: "Dockhand environment",
     title: "Title (optional, defaults to the environment name)",
     show_logo: "Show Dockhand logo",
+    dockhand_url: "Dockhand URL opened by the logo (optional, detected from the integration)",
     show_stats: "Show CPU, memory and containers",
     show_counts: "Show counts (stacks, images…)",
     show_stacks: "Show stacks",
@@ -109,6 +111,7 @@ const STRINGS = {
     environment: "Environnement Dockhand",
     title: "Titre (facultatif, nom de l'environnement par défaut)",
     show_logo: "Afficher le logo Dockhand",
+    dockhand_url: "URL de Dockhand ouverte par le logo (facultatif, détectée depuis l'intégration)",
     show_stats: "Afficher CPU, mémoire et conteneurs",
     show_counts: "Afficher les compteurs (stacks, images…)",
     show_stacks: "Afficher les stacks",
@@ -278,6 +281,7 @@ const BASE_STYLE = `
   .bar > div { height: 100%; border-radius: 3px; background: var(--c, var(--dh-orange)); transition: width .6s ease; }
   .header { display: flex; align-items: center; gap: 12px; padding: 16px 16px 8px; }
   .logo { height: 48px; width: auto; flex: none; }
+  a.logo-link { display: flex; flex: none; }
   .titles { flex: 1; min-width: 0; }
   .name { font-size: 18px; font-weight: 500; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sub { font-size: 13px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -341,6 +345,15 @@ class DockhandBase extends HTMLElement {
     }
   }
 
+  // Logo target: dockhand_url option, else the Dockhand web UI advertised by the integration
+  // (environment device configuration_url, minus its settings deep link), else the project website.
+  _dockhandUrl(env) {
+    if (this._config.dockhand_url) return this._config.dockhand_url;
+    const conf = this._hass.devices?.[env.id]?.configuration_url;
+    if (conf) return conf.replace(/\/settings(?:[/?#].*)?$/, "") || conf;
+    return DOCKHAND_SITE;
+  }
+
   _header(env) {
     const c = this._config;
     const online = this._s(env.entities.online);
@@ -351,7 +364,11 @@ class DockhandBase extends HTMLElement {
     const sub = [docker && docker !== "unknown" ? `Docker ${docker}` : null, platform, conn].filter((v) => v && v !== "unknown" && v !== "unavailable");
     return `
       <div class="header">
-        ${c.show_logo !== false ? `<img class="logo" src="${IMG_LOGO}" alt="Dockhand">` : ""}
+        ${
+          c.show_logo !== false
+            ? `<a class="logo-link" href="${esc(this._dockhandUrl(env))}" target="_blank" rel="noopener noreferrer" title="Dockhand"><img class="logo" src="${IMG_LOGO}" alt="Dockhand"></a>`
+            : ""
+        }
         <div class="titles">
           <div class="name">${esc(c.title || env.name)}</div>
           ${sub.length ? `<div class="sub">${esc(sub.join(" · "))}</div>` : ""}
@@ -764,6 +781,7 @@ class DockhandEditorBase extends HTMLElement {
     return [
       { name: "environment", selector: { select: { mode: "dropdown", options: listEnvs(this._hass) } } },
       { name: "title", selector: { text: {} } },
+      { name: "dockhand_url", selector: { text: { type: "url" } } },
       {
         type: "grid",
         name: "",
