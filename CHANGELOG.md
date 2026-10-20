@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### ✨ Features
+
+- Stacks and containers lists are now collapsed by default: click the section title to unfold them. New `expand_stacks` and `expand_containers` options (also in the visual editor) keep them expanded.
+
 ## 1.1.0
 
 ### ✨ Features

@@ -93,6 +93,8 @@ show_stacks: true
 show_containers: true
 show_controls: true
 only_problems: false
+expand_stacks: false
+expand_containers: false
 language: fr
 ```
 
@@ -120,6 +122,8 @@ language: fr
 | `show_containers` | full | `false` | Containers list |
 | `show_controls` | full | `true` | Start / stop and restart buttons |
 | `only_problems` | full | `false` | Only list stacks and containers that are stopped, unhealthy, out of sync or have an update |
+| `expand_stacks` | full | `false` | Stacks list expanded when the card loads (click the section title to fold / unfold) |
+| `expand_containers` | full | `false` | Containers list expanded when the card loads (click the section title to fold / unfold) |
 | `show_updates` | mini | `true` | Pending updates in the footer |
 | `language` | both | Auto | Force language: `fr` or `en` (auto-detects from HA settings) |
 

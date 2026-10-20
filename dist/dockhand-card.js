@@ -12,6 +12,7 @@ const IMG_LOGO = "data:image/webp;base64,UklGRroeAABXRUJQVlA4WAoAAAAQAAAAnwAAmQA
 const DOCKHAND_SITE = "https://dockhand.pro";
 
 const ICONS = {
+  chevron: "M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z",
   cpu: "M6,4H18V5H21V7H18V9H21V11H18V13H21V15H18V17H21V19H18V20H6V19H3V17H6V15H3V13H6V11H3V9H6V7H3V5H6V4M11,15V18H12V15H11M13,15V18H14V15H13M15,15V18H16V15H15Z",
   ram: "M17,17H7V7H17M21,11V9H19V7C19,5.89 18.1,5 17,5H15V3H13V5H11V3H9V5H7C5.89,5 5,5.89 5,7V9H3V11H5V13H3V15H5V17A2,2 0 0,0 7,19H9V21H11V19H13V21H15V19H17A2,2 0 0,0 19,17V15H21V13H19V11M13,13H11V11H13M15,9H9V15H15V9Z",
   container: "M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5C3,7.12 3.21,6.79 3.53,6.62L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.79,6.79 21,7.12 21,7.5V16.5M12,4.15L6.04,7.5L12,10.85L17.96,7.5L12,4.15M5,15.91L11,19.29V12.58L5,9.21V15.91M19,15.91V9.21L13,12.58V19.29L19,15.91Z",
@@ -71,6 +72,8 @@ const STRINGS = {
     show_containers: "Show containers",
     show_controls: "Show start / stop / restart buttons",
     only_problems: "Only list stacks and containers needing attention",
+    expand_stacks: "Stacks list expanded by default",
+    expand_containers: "Containers list expanded by default",
     show_updates: "Show pending updates",
     language: "Language",
     lang_auto: "Automatic",
@@ -118,6 +121,8 @@ const STRINGS = {
     show_containers: "Afficher les conteneurs",
     show_controls: "Afficher les boutons démarrer / arrêter / redémarrer",
     only_problems: "Lister uniquement les stacks et conteneurs à surveiller",
+    expand_stacks: "Liste des stacks dépliée par défaut",
+    expand_containers: "Liste des conteneurs dépliée par défaut",
     show_updates: "Afficher les mises à jour en attente",
     language: "Langue",
     lang_auto: "Automatique",
@@ -308,6 +313,7 @@ class DockhandBase extends HTMLElement {
   setConfig(config) {
     if (!config) throw new Error("Invalid configuration");
     this._config = { ...config };
+    this._folds = {};
     this._html = "";
     this._update();
   }
@@ -334,7 +340,10 @@ class DockhandBase extends HTMLElement {
     if (!el) return;
     ev.stopPropagation();
     const { action, entity, label } = el.dataset;
-    if (action === "restart") {
+    if (action === "fold") {
+      this._folds = { ...this._folds, [el.dataset.section]: !this._isOpen(el.dataset.section) };
+      this._update();
+    } else if (action === "restart") {
       if (window.confirm(this._t("confirm_restart", { name: label }))) this._hass.callService("button", "press", { entity_id: entity });
     } else if (action === "toggle") {
       const on = this._s(entity)?.state === "on";
@@ -422,6 +431,10 @@ const FULL_STYLE = `
   .section-title { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; text-transform: uppercase;
                    letter-spacing: .04em; color: var(--secondary-text-color); margin-bottom: 6px; }
   .section-title .count { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .section-title.fold { cursor: pointer; user-select: none; }
+  .section-title .chevron { transition: transform .2s ease; }
+  .section-title.closed { margin-bottom: 0; }
+  .section-title.closed .chevron { transform: rotate(-90deg); }
   .gauges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .gauge { display: flex; flex-direction: column; align-items: center; position: relative; }
   .ring { width: 84px; height: 84px; transform: rotate(-90deg); }
@@ -619,7 +632,7 @@ class DockhandCard extends DockhandBase {
         </div>`,
       };
     });
-    return this._section(ICONS.stack, this._t("stacks"), rows);
+    return this._section("stacks", ICONS.stack, this._t("stacks"), rows);
   }
 
   _containers(env) {
@@ -655,17 +668,25 @@ class DockhandCard extends DockhandBase {
         </div>`,
       };
     });
-    return this._section(ICONS.container, this._t("containers"), rows);
+    return this._section("containers", ICONS.container, this._t("containers"), rows);
   }
 
-  _section(icon, title, rows) {
+  // Stacks and containers lists are collapsed until clicked, unless expand_<key> is set.
+  _isOpen(key) {
+    return this._folds?.[key] ?? this._config[`expand_${key}`] === true;
+  }
+
+  _section(key, icon, title, rows) {
     if (!rows.length) return "";
     const shown = this._config.only_problems ? rows.filter((r) => r.problem) : rows;
     // Items needing attention first.
     shown.sort((a, b) => Number(b.problem) - Number(a.problem));
+    const open = this._isOpen(key);
     return `<div>
-      <div class="section-title">${svgIcon(icon)}${esc(title)}<span class="count">${shown.length}/${rows.length}</span></div>
-      <div class="list">${shown.length ? shown.map((r) => r.html).join("") : `<div class="empty">✓</div>`}</div>
+      <div class="section-title fold ${open ? "" : "closed"}" data-action="fold" data-section="${key}">${svgIcon(icon)}${esc(
+        title
+      )}<span class="count">${shown.length}/${rows.length}</span>${svgIcon(ICONS.chevron, "chevron")}</div>
+      ${open ? `<div class="list">${shown.length ? shown.map((r) => r.html).join("") : `<div class="empty">✓</div>`}</div>` : ""}
     </div>`;
   }
 }
@@ -840,6 +861,8 @@ class DockhandCardEditor extends DockhandEditorBase {
       ["show_containers", false],
       ["show_controls", true],
       ["only_problems", false],
+      ["expand_stacks", false],
+      ["expand_containers", false],
     ];
   }
 }
