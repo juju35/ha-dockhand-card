@@ -1,12 +1,12 @@
 {
   "name": "ha-dockhand-card",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Lovelace cards for Home Assistant to monitor and control Docker environments managed by Dockhand.",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "check": "node scripts/build.mjs --check && node --check dist/dockhand-card.js",
+    "check": "node scripts/build.mjs && node --check dist/dockhand-card.js",
     "screenshots": "node scripts/screenshots.mjs"
   },
   "license": "MIT",

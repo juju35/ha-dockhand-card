@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.0
+
+### Changes
+- The warning color falls back to Home Assistant's default `#ffa600` (was `#ffa000`), like the other ha-* cards.
+
+### Development
+- The built card is no longer committed in `dist/`: CI builds it on every push, and the release workflow builds it and attaches it to the release, which is where HACS downloads it from.
+- Releases are published when `version` in `package.json` has no tag yet: bump the version, add its CHANGELOG section and push, like the other ha-* repositories (the manual Release workflow run is no longer needed).
+- Issue templates, and stale, release notes and merged-branch cleanup workflows, shared with the other repositories.
+
 ## 1.3.0
 
 ### ✨ Features
