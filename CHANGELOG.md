@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0
+
+### ✨ Features
+
+- A click anywhere else on the page folds the stacks and containers lists back to their defaults (`expand_stacks`, `expand_containers`), as in ha-carburants-france.
+
 ## 1.2.0
 
 ### ✨ Features

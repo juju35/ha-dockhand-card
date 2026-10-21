@@ -310,6 +310,22 @@ class DockhandBase extends HTMLElement {
     return this._hass;
   }
 
+  // A click elsewhere on the page folds the sections back to their defaults (as in ha-carburants-france).
+  // A click, not a pointerdown: folding on press would shift the layout under the pointer before the click.
+  connectedCallback() {
+    this._onOutside ??= (ev) => {
+      if (!this._folds || !Object.keys(this._folds).length) return;
+      if (ev.composedPath().includes(this)) return;
+      this._folds = {};
+      this._update();
+    };
+    document.addEventListener("click", this._onOutside, true);
+  }
+
+  disconnectedCallback() {
+    document.removeEventListener("click", this._onOutside, true);
+  }
+
   setConfig(config) {
     if (!config) throw new Error("Invalid configuration");
     this._config = { ...config };
