@@ -35,7 +35,7 @@ The cards are built on top of the [Dockhand integration](https://github.com/raet
 
 ## Prerequisites
 
-The [Dockhand integration](https://github.com/raetha/ha-dockhand) must be installed and configured (available in HACS), with Home Assistant 2024.1 or later.
+The [Dockhand integration](https://github.com/raetha/ha-dockhand) must be installed and configured (available in HACS), with Home Assistant 2024.8 or later.
 
 ## Installation
 
