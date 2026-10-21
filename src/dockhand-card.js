@@ -290,6 +290,7 @@ const BASE_STYLE = `
   .titles { flex: 1; min-width: 0; }
   .name { font-size: 18px; font-weight: 500; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sub { font-size: 13px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .titles .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
   .warning { padding: 16px; color: var(--dh-warn); }
 `;
 
@@ -397,14 +398,14 @@ class DockhandBase extends HTMLElement {
         <div class="titles">
           <div class="name">${esc(c.title || env.name)}</div>
           ${sub.length ? `<div class="sub">${esc(sub.join(" · "))}</div>` : ""}
+          ${
+            online
+              ? `<div class="chips"><span class="chip clickable ${isOnline ? "ok" : "crit"}" data-entity="${online.entity_id}"><span class="dot"></span>${this._t(
+                  isOnline ? "online" : "offline"
+                )}</span></div>`
+              : ""
+          }
         </div>
-        ${
-          online
-            ? `<span class="chip clickable ${isOnline ? "ok" : "crit"}" data-entity="${online.entity_id}"><span class="dot"></span>${this._t(
-                isOnline ? "online" : "offline"
-              )}</span>`
-            : ""
-        }
       </div>`;
   }
 
