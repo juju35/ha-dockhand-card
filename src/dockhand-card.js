@@ -44,7 +44,6 @@ const STRINGS = {
     offline: "Offline",
     update_available: "Update available",
     unhealthy: "Unhealthy",
-    healthy: "Healthy",
     sync_error: "Sync error",
     restart: "Restart",
     start_stop: "Start / stop",
@@ -94,7 +93,6 @@ const STRINGS = {
     offline: "Hors ligne",
     update_available: "Mise à jour disponible",
     unhealthy: "En mauvaise santé",
-    healthy: "En bonne santé",
     sync_error: "Erreur de synchro",
     restart: "Redémarrer",
     start_stop: "Démarrer / arrêter",
@@ -150,6 +148,9 @@ const num = (s) => {
   return Number.isFinite(v) ? v : null;
 };
 
+// Counter value as shown: a dash while the sensor is unknown or unavailable.
+const countText = (s) => (!s || s.state === "unknown" || s.state === "unavailable" ? "—" : s.state);
+
 const fmtBytes = (b) => {
   if (b === null || b === undefined || !Number.isFinite(Number(b))) return "—";
   b = Number(b);
@@ -195,25 +196,54 @@ const stateClass = (state) => {
 const sameSig = (a, b) => !!a && !!b && a.length === b.length && a.every((v, i) => v === b[i]);
 
 // Patch the shadow DOM in place from the new HTML: nodes whose tag is unchanged are kept, so keyboard
-// focus, hover and CSS transitions (bars, rings) survive an update, and only the changed text and
-// attributes are written.
+// focus, hover, embedded pictures and CSS transitions survive an update, and only the changed text and
+// attributes are written. Rows of a list carry a data-key (their entity or row id) and are matched by it,
+// wherever they moved, so a focused row keeps its own data when the list is reordered (a node matched by
+// position would be rewritten with the row taking its place, and Enter would act on that row). Nodes
+// without a data-key are matched by position.
 const patchAttrs = (cur, next) => {
   for (const { name } of [...cur.attributes]) if (!next.hasAttribute(name)) cur.removeAttribute(name);
   for (const { name, value } of next.attributes) if (cur.getAttribute(name) !== value) cur.setAttribute(name, value);
 };
+const keyOf = (n) => (n.nodeType === 1 ? n.getAttribute("data-key") : null);
+const sameNode = (a, b) => !!a && a.nodeType === b.nodeType && a.nodeName === b.nodeName;
+// Moves a kept node. moveBefore (where supported) keeps its focus; insertBefore drops it, which is safe:
+// Enter then does nothing rather than act on another row.
+const place = (parent, node, ref) => {
+  if (node === ref) return;
+  try {
+    if (parent.moveBefore && node.parentNode === parent) return parent.moveBefore(node, ref);
+  } catch (_e) {
+    /* fall back to insertBefore */
+  }
+  parent.insertBefore(node, ref);
+};
 const patchChildren = (cur, next) => {
   const old = [...cur.childNodes];
   const fresh = [...next.childNodes];
+  const byKey = new Map();
+  for (const o of old) {
+    const k = keyOf(o);
+    if (k !== null && !byKey.has(k)) byKey.set(k, o);
+  }
+  const used = new Set();
   fresh.forEach((n, i) => {
-    const o = old[i];
-    if (!o) cur.appendChild(n);
-    else if (o.nodeType !== n.nodeType || o.nodeName !== n.nodeName) cur.replaceChild(n, o);
-    else if (n.nodeType === 1) {
+    const k = keyOf(n);
+    let o = k !== null ? byKey.get(k) : old[i];
+    if (!sameNode(o, n) || used.has(o) || (k === null && keyOf(o) !== null)) o = null;
+    const ref = cur.childNodes[i] ?? null;
+    if (!o) {
+      cur.insertBefore(n, ref);
+      return;
+    }
+    used.add(o);
+    place(cur, o, ref);
+    if (n.nodeType === 1) {
       patchAttrs(o, n);
       patchChildren(o, n);
     } else if (o.nodeValue !== n.nodeValue) o.nodeValue = n.nodeValue;
   });
-  for (let i = fresh.length; i < old.length; i++) cur.removeChild(old[i]);
+  while (cur.childNodes.length > fresh.length) cur.removeChild(cur.lastChild);
 };
 const morph = (root, html) => {
   const tpl = document.createElement("template");
@@ -434,7 +464,8 @@ class DockhandBase extends HTMLElement {
   // Logo target: dockhand_url option, else the Dockhand web UI advertised by the integration
   // (environment device configuration_url, minus its settings deep link), else the project website.
   _dockhandUrl(env) {
-    if (this._config.dockhand_url) return this._config.dockhand_url;
+    // Only http(s) addresses: any other scheme (javascript:…) would run on a click on the logo.
+    if (/^https?:\/\//i.test(this._config.dockhand_url || "")) return this._config.dockhand_url;
     const conf = this._hass.devices?.[env.id]?.configuration_url;
     if (conf) return conf.replace(/\/settings(?:[/?#].*)?$/, "") || conf;
     return DOCKHAND_SITE;
@@ -564,8 +595,20 @@ class DockhandCard extends DockhandBase {
     return env ? { environment: env.value } : {};
   }
 
+  // Rows of about 50 px: header, gauges, counter tiles, then each list title and, when the list is
+  // open, its rows.
   getCardSize() {
-    return 8;
+    const c = this._config || {};
+    let size = 1 + (c.show_stats !== false ? 2 : 0) + (c.show_counts !== false ? 1 : 0);
+    const env = this._hass && this._config ? findEnv(this._hass, c).env : null;
+    for (const [key, shown] of [
+      ["stacks", c.show_stacks !== false],
+      ["containers", c.show_containers === true],
+    ]) {
+      const n = env ? env[key].length : 0;
+      if (shown && (n || !env)) size += 1 + (this._isOpen(key) ? n : 0);
+    }
+    return size;
   }
 
   getGridOptions() {
@@ -633,11 +676,11 @@ class DockhandCard extends DockhandBase {
     const cs = this._containerStats(env);
     const tile = (id, icon, label, value, cls = "") =>
       id && this._s(id)
-        ? `<div class="count-tile clickable ${cls}" role="button" tabindex="0" data-entity="${id}"><div class="top">${svgIcon(icon)}<span class="v">${esc(
+        ? `<div class="count-tile clickable ${cls}" role="button" tabindex="0" data-key="${id}" data-entity="${id}"><div class="top">${svgIcon(icon)}<span class="v">${esc(
             value
           )}</span></div><div class="k">${esc(label)}</div></div>`
         : "";
-    const v = (id) => this._s(id)?.state ?? "—";
+    const v = (id) => countText(this._s(id));
     const tiles = [
       tile(e.stacks, ICONS.stack, this._t("stacks"), v(e.stacks)),
       tile(e.image_count, ICONS.image, this._t("images"), v(e.image_count)),
@@ -654,13 +697,13 @@ class DockhandCard extends DockhandBase {
     const out = [];
     if (entities.restart && this._s(entities.restart))
       out.push(
-        `<button class="ctrl" title="${esc(this._t("restart"))}" data-action="restart" data-entity="${entities.restart}" data-label="${esc(
+        `<button class="ctrl" title="${esc(this._t("restart"))}" data-key="restart" data-action="restart" data-entity="${entities.restart}" data-label="${esc(
           label
         )}">${svgIcon(ICONS.restart)}</button>`
       );
     if (sw)
       out.push(
-        `<button class="ctrl ${sw.state === "on" ? "on" : ""}" title="${esc(this._t("start_stop"))}" data-action="toggle" data-entity="${
+        `<button class="ctrl ${sw.state === "on" ? "on" : ""}" title="${esc(this._t("start_stop"))}" data-key="toggle" data-action="toggle" data-entity="${
           sw.entity_id
         }" data-label="${esc(label)}">${svgIcon(ICONS.power)}</button>`
       );
@@ -690,7 +733,7 @@ class DockhandCard extends DockhandBase {
       ].filter(Boolean);
       return {
         problem,
-        html: `<div class="item">
+        html: `<div class="item" data-key="${esc(st.id)}">
           <span class="dot ${cls}"></span>
           <div class="main clickable" role="button" tabindex="0" data-entity="${e.status || ""}">
             <div class="title"><span>${esc(st.name)}</span>
@@ -701,7 +744,7 @@ class DockhandCard extends DockhandBase {
           </div>
           ${
             hasUpd
-              ? `<span class="badge-update clickable" role="button" tabindex="0" title="${esc(this._t("update_available"))}" data-entity="${upd.entity_id}">${svgIcon(
+              ? `<span class="badge-update clickable" role="button" tabindex="0" title="${esc(this._t("update_available"))}" data-key="update" data-entity="${upd.entity_id}">${svgIcon(
                   ICONS.update
                 )}</span>`
               : ""
@@ -727,7 +770,7 @@ class DockhandCard extends DockhandBase {
       const image = state?.attributes?.image;
       return {
         problem,
-        html: `<div class="item">
+        html: `<div class="item" data-key="${esc(ct.id)}">
           <span class="dot ${unhealthy ? "crit" : cls}"></span>
           <div class="main clickable" role="button" tabindex="0" data-entity="${e.state || ""}">
             <div class="title"><span>${esc(state?.attributes?.name || ct.name)}</span>
@@ -737,7 +780,7 @@ class DockhandCard extends DockhandBase {
           </div>
           ${
             hasUpd
-              ? `<span class="badge-update clickable" role="button" tabindex="0" title="${esc(this._t("update_available"))}" data-entity="${upd.entity_id}">${svgIcon(
+              ? `<span class="badge-update clickable" role="button" tabindex="0" title="${esc(this._t("update_available"))}" data-key="update" data-entity="${upd.entity_id}">${svgIcon(
                   ICONS.update
                 )}</span>`
               : ""
@@ -834,13 +877,13 @@ class DockhandMiniCard extends DockhandBase {
     ];
     const foot = [];
     const stacks = this._s(e.stacks);
-    if (stacks) foot.push(`<span class="clickable" role="button" tabindex="0" data-entity="${e.stacks}">${svgIcon(ICONS.stack)}${esc(stacks.state)} ${esc(this._t("stacks").toLowerCase())}</span>`);
+    if (stacks) foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${e.stacks}" data-entity="${e.stacks}">${svgIcon(ICONS.stack)}${esc(countText(stacks))} ${esc(this._t("stacks").toLowerCase())}</span>`);
     const images = this._s(e.image_count);
     if (images)
-      foot.push(`<span class="clickable" role="button" tabindex="0" data-entity="${e.image_count}">${svgIcon(ICONS.image)}${esc(images.state)} ${esc(this._t("images").toLowerCase())}</span>`);
+      foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${e.image_count}" data-entity="${e.image_count}">${svgIcon(ICONS.image)}${esc(countText(images))} ${esc(this._t("images").toLowerCase())}</span>`);
     if (this._config.show_updates !== false && cs.entity)
       foot.push(
-        `<span class="clickable ${cs.updates > 0 ? "upd" : ""}" role="button" tabindex="0" data-entity="${cs.entity}">${svgIcon(ICONS.update)}${esc(cs.updates)} ${esc(
+        `<span class="clickable ${cs.updates > 0 ? "upd" : ""}" role="button" tabindex="0" data-key="${cs.entity}" data-entity="${cs.entity}">${svgIcon(ICONS.update)}${esc(cs.updates)} ${esc(
           this._t("updates").toLowerCase()
         )}</span>`
       );

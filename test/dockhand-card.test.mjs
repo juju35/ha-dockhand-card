@@ -66,3 +66,32 @@ test("a change of a container state changes the render signature", () => {
   const next = { ...states, "sensor.web_state": { ...states["sensor.web_state"], state: "exited" } };
   assert.ok(!sameSig(before, make(DockhandCard, next)._signature()));
 });
+
+test("dockhand_url is only used for an http(s) address", () => {
+  const env = resolve({ entities, devices }).envs[0];
+  const card = (url) => make(DockhandCard, baseStates(), { dockhand_url: url })._dockhandUrl(env);
+  assert.equal(card("http://nas.local:3000"), "http://nas.local:3000");
+  assert.equal(card("HTTPS://dockhand.example"), "HTTPS://dockhand.example");
+  assert.ok(!card("javascript:alert(1)").startsWith("javascript"));
+  assert.ok(!card(" javascript:alert(1)").includes("javascript"));
+});
+
+test("unknown or unavailable counters are shown as a dash", () => {
+  const ents = { ...entities, "sensor.images": { entity_id: "sensor.images", device_id: "env", platform: "dockhand", translation_key: "image_count" } };
+  const states = { ...baseStates(), "sensor.images": { entity_id: "sensor.images", state: "unavailable", attributes: {} } };
+  for (const Cls of [DockhandCard, DockhandMiniCard]) {
+    const el = make(Cls, states);
+    el._hass.entities = ents;
+    const html = el._render();
+    assert.ok(!html.includes("unavailable"), Cls.name);
+    assert.ok(html.includes("—"), Cls.name);
+  }
+});
+
+test("getCardSize follows the sections shown and the open lists", () => {
+  const states = baseStates();
+  assert.equal(make(DockhandCard, states, {}).getCardSize(), 4);
+  assert.equal(make(DockhandCard, states, { show_stats: false, show_counts: false }).getCardSize(), 1);
+  assert.equal(make(DockhandCard, states, { show_containers: true }).getCardSize(), 5);
+  assert.equal(make(DockhandCard, states, { show_containers: true, expand_containers: true }).getCardSize(), 6);
+});

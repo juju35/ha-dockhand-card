@@ -1,4 +1,4 @@
-// Renders the cards with mock UGREEN NAS data and saves the README screenshots.
+// Renders the cards with mock Dockhand data and saves the README screenshots.
 // Usage: npm run build && npm run screenshots
 import { chromium } from "playwright";
 import { readFileSync } from "node:fs";
@@ -55,8 +55,10 @@ const shots = [
 const browser = await chromium.launch(
   process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}
 );
-const page = await browser.newPage({ deviceScaleFactor: 2, viewport: { width: 1000, height: 2000 } });
 for (const s of shots) {
+  // A fresh page for each capture: the card script declares its classes and custom elements once per page.
+  const page = await browser.newPage({ deviceScaleFactor: 2, viewport: { width: 1000, height: 2000 } });
+  page.on("pageerror", (err) => console.error(`${s.file}: ${err.message}`));
   await page.setContent(page_html(s.theme, s.width));
   await page.addScriptTag({ content: HA_CARD });
   await page.addScriptTag({ content: cardJs });
@@ -77,5 +79,6 @@ for (const s of shots) {
     animations: "disabled",
   });
   console.log(`screenshots/${s.file}.png`);
+  await page.close();
 }
 await browser.close();
