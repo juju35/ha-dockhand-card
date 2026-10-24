@@ -52,7 +52,7 @@ const STRINGS = {
     confirm_stop: "Stop {name}?",
     no_env: "No Dockhand environment found. Is the Dockhand integration installed?",
     unknown_env: "Dockhand environment not found",
-    no_registry: "This card needs Home Assistant 2023.4 or later.",
+    no_registry: "This card needs Home Assistant 2024.8 or later.",
     state_running: "Running",
     state_exited: "Stopped",
     state_stopped: "Stopped",
@@ -102,7 +102,7 @@ const STRINGS = {
     confirm_stop: "Arrêter {name} ?",
     no_env: "Aucun environnement Dockhand trouvé. L'intégration Dockhand est-elle installée ?",
     unknown_env: "Environnement Dockhand introuvable",
-    no_registry: "Cette carte nécessite Home Assistant 2023.4 ou plus récent.",
+    no_registry: "Cette carte nécessite Home Assistant 2024.8 ou plus récent.",
     state_running: "Actif",
     state_exited: "Arrêté",
     state_stopped: "Arrêté",
@@ -189,6 +189,36 @@ const stateClass = (state) => {
     default:
       return "idle";
   }
+};
+
+// Same values, compared by identity: used to skip a render when nothing the card shows has changed.
+const sameSig = (a, b) => !!a && !!b && a.length === b.length && a.every((v, i) => v === b[i]);
+
+// Patch the shadow DOM in place from the new HTML: nodes whose tag is unchanged are kept, so keyboard
+// focus, hover and CSS transitions (bars, rings) survive an update, and only the changed text and
+// attributes are written.
+const patchAttrs = (cur, next) => {
+  for (const { name } of [...cur.attributes]) if (!next.hasAttribute(name)) cur.removeAttribute(name);
+  for (const { name, value } of next.attributes) if (cur.getAttribute(name) !== value) cur.setAttribute(name, value);
+};
+const patchChildren = (cur, next) => {
+  const old = [...cur.childNodes];
+  const fresh = [...next.childNodes];
+  fresh.forEach((n, i) => {
+    const o = old[i];
+    if (!o) cur.appendChild(n);
+    else if (o.nodeType !== n.nodeType || o.nodeName !== n.nodeName) cur.replaceChild(n, o);
+    else if (n.nodeType === 1) {
+      patchAttrs(o, n);
+      patchChildren(o, n);
+    } else if (o.nodeValue !== n.nodeValue) o.nodeValue = n.nodeValue;
+  });
+  for (let i = fresh.length; i < old.length; i++) cur.removeChild(old[i]);
+};
+const morph = (root, html) => {
+  const tpl = document.createElement("template");
+  tpl.innerHTML = html;
+  patchChildren(root, tpl.content);
 };
 
 const svgIcon = (path, cls = "") => `<svg class="icon ${cls}" viewBox="0 0 24 24"><path d="${path}"/></svg>`;
@@ -278,6 +308,7 @@ const BASE_STYLE = `
   .icon { width: 18px; height: 18px; fill: currentColor; flex: none; }
   .muted { color: var(--secondary-text-color); }
   .clickable { cursor: pointer; }
+  [role="button"]:focus-visible { outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 2px; }
   .ok { --c: var(--dh-ok); } .warn { --c: var(--dh-warn); } .crit { --c: var(--dh-crit); } .idle { --c: var(--dh-idle); }
   .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c, var(--dh-ok)); flex: none; display: inline-block; }
   .chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;
@@ -299,11 +330,22 @@ class DockhandBase extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this._html = "";
     this.shadowRoot.addEventListener("click", (ev) => this._onClick(ev));
+    // Keyboard access: Enter or Space on a focusable non-button element acts as a click.
+    this.shadowRoot.addEventListener("keydown", (ev) => {
+      if ((ev.key === "Enter" || ev.key === " ") && ev.target.getAttribute?.("role") === "button") {
+        ev.preventDefault();
+        ev.target.click();
+      }
+    });
   }
 
   set hass(hass) {
     this._hass = hass;
-    this._update();
+    if (!this._config) return;
+    // Render only when a state the card shows has changed, not on every state change of Home Assistant.
+    const sig = this._signature();
+    if (sameSig(sig, this._sig)) return;
+    this._update(sig);
   }
 
   get hass() {
@@ -342,13 +384,32 @@ class DockhandBase extends HTMLElement {
     return id ? this._hass.states[id] : undefined;
   }
 
-  _update() {
+  // What the render depends on: registries, language and the states of the environment, its stacks
+  // and its containers.
+  _signature() {
+    const h = this._hass;
+    const sig = [h.entities, h.devices, h.language, h.locale?.language];
+    const { env } = findEnv(h, this._config);
+    if (!env) return sig;
+    for (const group of [env, ...env.stacks, ...env.containers]) for (const id of Object.values(group.entities)) sig.push(h.states[id]);
+    return sig;
+  }
+
+  _update(sig) {
     if (!this._hass || !this._config) return;
+    this._sig = sig ?? this._signature();
     const html = this._render();
     if (html !== this._html) {
       this._html = html;
-      this.shadowRoot.innerHTML = html;
+      morph(this.shadowRoot, html);
     }
+  }
+
+  // Service call whose failure is logged (Home Assistant already shows a toast) instead of left unhandled.
+  _call(domain, service, data) {
+    return Promise.resolve()
+      .then(() => this._hass.callService(domain, service, data))
+      .catch((err) => console.error(`dockhand-card: ${domain}.${service} failed`, err));
   }
 
   _onClick(ev) {
@@ -360,11 +421,11 @@ class DockhandBase extends HTMLElement {
       this._folds = { ...this._folds, [el.dataset.section]: !this._isOpen(el.dataset.section) };
       this._update();
     } else if (action === "restart") {
-      if (window.confirm(this._t("confirm_restart", { name: label }))) this._hass.callService("button", "press", { entity_id: entity });
+      if (window.confirm(this._t("confirm_restart", { name: label }))) this._call("button", "press", { entity_id: entity });
     } else if (action === "toggle") {
       const on = this._s(entity)?.state === "on";
       if (!on || window.confirm(this._t("confirm_stop", { name: label })))
-        this._hass.callService("switch", on ? "turn_off" : "turn_on", { entity_id: entity });
+        this._call("switch", on ? "turn_off" : "turn_on", { entity_id: entity });
     } else if (entity) {
       this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId: entity }, bubbles: true, composed: true }));
     }
@@ -400,7 +461,7 @@ class DockhandBase extends HTMLElement {
         </div>
         ${
           online
-            ? `<span class="chip clickable ${isOnline ? "ok" : "crit"}" data-entity="${online.entity_id}"><span class="dot"></span>${this._t(
+            ? `<span class="chip clickable ${isOnline ? "ok" : "crit"}" role="button" tabindex="0" data-entity="${online.entity_id}"><span class="dot"></span>${this._t(
                 isOnline ? "online" : "offline"
               )}</span>`
             : ""
@@ -528,7 +589,7 @@ class DockhandCard extends DockhandBase {
   }
 
   _gauge(id, label, icon, pct, display, cls) {
-    return `<div class="gauge clickable ${cls}" data-entity="${id || ""}">
+    return `<div class="gauge clickable ${cls}" role="button" tabindex="0" data-entity="${id || ""}">
       ${ring(pct)}
       <div class="val">${svgIcon(icon)}<b>${display}</b></div>
       <div class="lbl">${label}</div>
@@ -549,7 +610,7 @@ class DockhandCard extends DockhandBase {
     return `<div class="gauges">
       ${this._gauge(
         env.entities.cpu_usage,
-        cores ? `${this._t("cpu")}<small>${cores} ${this._t("cores")}</small>` : this._t("cpu"),
+        cores ? `${this._t("cpu")}<small>${esc(cores)} ${this._t("cores")}</small>` : this._t("cpu"),
         ICONS.cpu,
         cpu,
         cpu === null ? "—" : `${cpu < 10 ? cpu.toFixed(1) : Math.round(cpu)}%`,
@@ -561,7 +622,7 @@ class DockhandCard extends DockhandBase {
         `${this._t("containers")}<small>${this._t("running")}</small>`,
         ICONS.container,
         runPct,
-        cs.total === null ? "—" : `${cs.running ?? "?"}/${cs.total}`,
+        cs.total === null ? "—" : `${esc(cs.running ?? "?")}/${cs.total}`,
         cs.unhealthy > 0 || (runPct !== null && runPct < 100) ? "warn" : "ok"
       )}
     </div>`;
@@ -572,7 +633,7 @@ class DockhandCard extends DockhandBase {
     const cs = this._containerStats(env);
     const tile = (id, icon, label, value, cls = "") =>
       id && this._s(id)
-        ? `<div class="count-tile clickable ${cls}" data-entity="${id}"><div class="top">${svgIcon(icon)}<span class="v">${esc(
+        ? `<div class="count-tile clickable ${cls}" role="button" tabindex="0" data-entity="${id}"><div class="top">${svgIcon(icon)}<span class="v">${esc(
             value
           )}</span></div><div class="k">${esc(label)}</div></div>`
         : "";
@@ -631,7 +692,7 @@ class DockhandCard extends DockhandBase {
         problem,
         html: `<div class="item">
           <span class="dot ${cls}"></span>
-          <div class="main clickable" data-entity="${e.status || ""}">
+          <div class="main clickable" role="button" tabindex="0" data-entity="${e.status || ""}">
             <div class="title"><span>${esc(st.name)}</span>
               ${isGit ? `<span class="tag">${svgIcon(ICONS.git)}git</span>` : ""}
               ${syncErr ? `<span class="tag alert crit">${esc(this._t("sync_error"))}</span>` : ""}
@@ -640,7 +701,7 @@ class DockhandCard extends DockhandBase {
           </div>
           ${
             hasUpd
-              ? `<span class="badge-update clickable" title="${esc(this._t("update_available"))}" data-entity="${upd.entity_id}">${svgIcon(
+              ? `<span class="badge-update clickable" role="button" tabindex="0" title="${esc(this._t("update_available"))}" data-entity="${upd.entity_id}">${svgIcon(
                   ICONS.update
                 )}</span>`
               : ""
@@ -668,7 +729,7 @@ class DockhandCard extends DockhandBase {
         problem,
         html: `<div class="item">
           <span class="dot ${unhealthy ? "crit" : cls}"></span>
-          <div class="main clickable" data-entity="${e.state || ""}">
+          <div class="main clickable" role="button" tabindex="0" data-entity="${e.state || ""}">
             <div class="title"><span>${esc(state?.attributes?.name || ct.name)}</span>
               ${unhealthy ? `<span class="tag alert crit">${esc(this._t("unhealthy"))}</span>` : ""}
             </div>
@@ -676,7 +737,7 @@ class DockhandCard extends DockhandBase {
           </div>
           ${
             hasUpd
-              ? `<span class="badge-update clickable" title="${esc(this._t("update_available"))}" data-entity="${upd.entity_id}">${svgIcon(
+              ? `<span class="badge-update clickable" role="button" tabindex="0" title="${esc(this._t("update_available"))}" data-entity="${upd.entity_id}">${svgIcon(
                   ICONS.update
                 )}</span>`
               : ""
@@ -700,7 +761,7 @@ class DockhandCard extends DockhandBase {
     shown.sort((a, b) => Number(b.problem) - Number(a.problem));
     const open = this._isOpen(key);
     return `<div>
-      <div class="section-title fold ${open ? "" : "closed"}" data-action="fold" data-section="${key}">${svgIcon(icon)}${esc(
+      <div class="section-title fold ${open ? "" : "closed"}" role="button" tabindex="0" aria-expanded="${open}" data-action="fold" data-section="${key}">${svgIcon(icon)}${esc(
         title
       )}<span class="count">${shown.length}/${rows.length}</span>${svgIcon(ICONS.chevron, "chevron")}</div>
       ${open ? `<div class="list">${shown.length ? shown.map((r) => r.html).join("") : `<div class="empty">✓</div>`}</div>` : ""}
@@ -744,7 +805,7 @@ class DockhandMiniCard extends DockhandBase {
   }
 
   _metric(id, icon, label, pct, display, cls) {
-    return `<div class="metric clickable ${cls}" data-entity="${id || ""}">
+    return `<div class="metric clickable ${cls}" role="button" tabindex="0" data-entity="${id || ""}">
       ${svgIcon(icon)}<span>${label}</span>
       <div class="bar"><div style="width:${pct === null ? 0 : Math.max(0, Math.min(100, pct))}%"></div></div>
       <span class="v">${display}</span>
@@ -767,19 +828,19 @@ class DockhandMiniCard extends DockhandBase {
         ICONS.container,
         this._t("containers"),
         runPct,
-        cs.total === null ? "—" : `${cs.running ?? "?"}/${cs.total}`,
+        cs.total === null ? "—" : `${esc(cs.running ?? "?")}/${cs.total}`,
         cs.unhealthy > 0 || (runPct !== null && runPct < 100) ? "warn" : "ok"
       ),
     ];
     const foot = [];
     const stacks = this._s(e.stacks);
-    if (stacks) foot.push(`<span class="clickable" data-entity="${e.stacks}">${svgIcon(ICONS.stack)}${esc(stacks.state)} ${esc(this._t("stacks").toLowerCase())}</span>`);
+    if (stacks) foot.push(`<span class="clickable" role="button" tabindex="0" data-entity="${e.stacks}">${svgIcon(ICONS.stack)}${esc(stacks.state)} ${esc(this._t("stacks").toLowerCase())}</span>`);
     const images = this._s(e.image_count);
     if (images)
-      foot.push(`<span class="clickable" data-entity="${e.image_count}">${svgIcon(ICONS.image)}${esc(images.state)} ${esc(this._t("images").toLowerCase())}</span>`);
+      foot.push(`<span class="clickable" role="button" tabindex="0" data-entity="${e.image_count}">${svgIcon(ICONS.image)}${esc(images.state)} ${esc(this._t("images").toLowerCase())}</span>`);
     if (this._config.show_updates !== false && cs.entity)
       foot.push(
-        `<span class="clickable ${cs.updates > 0 ? "upd" : ""}" data-entity="${cs.entity}">${svgIcon(ICONS.update)}${cs.updates} ${esc(
+        `<span class="clickable ${cs.updates > 0 ? "upd" : ""}" role="button" tabindex="0" data-entity="${cs.entity}">${svgIcon(ICONS.update)}${esc(cs.updates)} ${esc(
           this._t("updates").toLowerCase()
         )}</span>`
       );
