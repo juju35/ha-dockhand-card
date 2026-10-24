@@ -27,8 +27,12 @@ const run = async ({ stack, change, noMoveBefore = false }) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.setContent("<!doctype html><body><div id=root></div></body>");
-  // Older browsers: no Element.moveBefore, a moved node loses the focus.
-  if (noMoveBefore) await page.addScriptTag({ content: "delete Element.prototype.moveBefore;" });
+  // Older browsers: no moveBefore, a moved node loses the focus. The shadow root inherits it from DocumentFragment.
+  if (noMoveBefore) {
+    await page.addScriptTag({
+      content: "for (const c of [Element, DocumentFragment, Document]) delete c.prototype.moveBefore;",
+    });
+  }
   await page.addScriptTag({
     content: `customElements.define("ha-card", class extends HTMLElement { constructor() { super(); this.attachShadow({ mode: "open" }).innerHTML = "<slot></slot>"; } });`,
   });

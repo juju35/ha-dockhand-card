@@ -31,8 +31,12 @@ const open = async ({ noMoveBefore = false } = {}) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.setContent("<!doctype html><body><div id=host></div></body>");
-  // Older browsers: no Element.moveBefore, a moved node loses the focus.
-  if (noMoveBefore) await page.addScriptTag({ content: "delete Element.prototype.moveBefore;" });
+  // Older browsers: no moveBefore, a moved node loses the focus. The shadow root inherits it from DocumentFragment.
+  if (noMoveBefore) {
+    await page.addScriptTag({
+      content: "for (const c of [Element, DocumentFragment, Document]) delete c.prototype.moveBefore;",
+    });
+  }
   await page.addScriptTag({ content: MORPH });
   await page.evaluate(() => {
     window.root = document.getElementById("host").attachShadow({ mode: "open" });
@@ -78,10 +82,15 @@ test("without moveBefore the focus never lands on another row", async (t) => {
     root.querySelector('[data-entity="switch.b"]').focus();
     const html = list(["b", "a", "c", "d"].reverse());
     morph(root, html);
-    return { focused: root.activeElement?.dataset.entity ?? null, faithful: root.innerHTML === fresh(html) };
+    return {
+      focused: root.activeElement?.dataset.entity ?? null,
+      faithful: root.innerHTML === fresh(html),
+      moveBefore: "moveBefore" in root || "moveBefore" in document.createElement("div"),
+    };
   });
   await page.close();
   assert.deepEqual(errors, []);
+  assert.equal(r.moveBefore, false, "moveBefore still reachable");
   assert.ok(r.focused === null || r.focused === "switch.b", `focus moved to ${r.focused}`);
   assert.equal(r.faithful, true);
 });
