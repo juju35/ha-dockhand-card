@@ -1,4 +1,4 @@
-// Renders the cards with mock UGREEN NAS data and saves the README screenshots.
+// Renders the cards with mock Dockhand data and saves the README screenshots.
 // Usage: npm run build && npm run screenshots
 import { chromium } from "playwright";
 import { readFileSync } from "node:fs";

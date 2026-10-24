@@ -44,7 +44,6 @@ const STRINGS = {
     offline: "Offline",
     update_available: "Update available",
     unhealthy: "Unhealthy",
-    healthy: "Healthy",
     sync_error: "Sync error",
     restart: "Restart",
     start_stop: "Start / stop",
@@ -94,7 +93,6 @@ const STRINGS = {
     offline: "Hors ligne",
     update_available: "Mise à jour disponible",
     unhealthy: "En mauvaise santé",
-    healthy: "En bonne santé",
     sync_error: "Erreur de synchro",
     restart: "Redémarrer",
     start_stop: "Démarrer / arrêter",
@@ -149,6 +147,9 @@ const num = (s) => {
   const v = parseFloat(s.state);
   return Number.isFinite(v) ? v : null;
 };
+
+// Counter value as shown: a dash while the sensor is unknown or unavailable.
+const countText = (s) => (!s || s.state === "unknown" || s.state === "unavailable" ? "—" : s.state);
 
 const fmtBytes = (b) => {
   if (b === null || b === undefined || !Number.isFinite(Number(b))) return "—";
@@ -434,7 +435,8 @@ class DockhandBase extends HTMLElement {
   // Logo target: dockhand_url option, else the Dockhand web UI advertised by the integration
   // (environment device configuration_url, minus its settings deep link), else the project website.
   _dockhandUrl(env) {
-    if (this._config.dockhand_url) return this._config.dockhand_url;
+    // Only http(s) addresses: any other scheme (javascript:…) would run on a click on the logo.
+    if (/^https?:\/\//i.test(this._config.dockhand_url || "")) return this._config.dockhand_url;
     const conf = this._hass.devices?.[env.id]?.configuration_url;
     if (conf) return conf.replace(/\/settings(?:[/?#].*)?$/, "") || conf;
     return DOCKHAND_SITE;
@@ -564,8 +566,20 @@ class DockhandCard extends DockhandBase {
     return env ? { environment: env.value } : {};
   }
 
+  // Rows of about 50 px: header, gauges, counter tiles, then each list title and, when the list is
+  // open, its rows.
   getCardSize() {
-    return 8;
+    const c = this._config || {};
+    let size = 1 + (c.show_stats !== false ? 2 : 0) + (c.show_counts !== false ? 1 : 0);
+    const env = this._hass && this._config ? findEnv(this._hass, c).env : null;
+    for (const [key, shown] of [
+      ["stacks", c.show_stacks !== false],
+      ["containers", c.show_containers === true],
+    ]) {
+      const n = env ? env[key].length : 0;
+      if (shown && (n || !env)) size += 1 + (this._isOpen(key) ? n : 0);
+    }
+    return size;
   }
 
   getGridOptions() {
@@ -637,7 +651,7 @@ class DockhandCard extends DockhandBase {
             value
           )}</span></div><div class="k">${esc(label)}</div></div>`
         : "";
-    const v = (id) => this._s(id)?.state ?? "—";
+    const v = (id) => countText(this._s(id));
     const tiles = [
       tile(e.stacks, ICONS.stack, this._t("stacks"), v(e.stacks)),
       tile(e.image_count, ICONS.image, this._t("images"), v(e.image_count)),
@@ -834,10 +848,10 @@ class DockhandMiniCard extends DockhandBase {
     ];
     const foot = [];
     const stacks = this._s(e.stacks);
-    if (stacks) foot.push(`<span class="clickable" role="button" tabindex="0" data-entity="${e.stacks}">${svgIcon(ICONS.stack)}${esc(stacks.state)} ${esc(this._t("stacks").toLowerCase())}</span>`);
+    if (stacks) foot.push(`<span class="clickable" role="button" tabindex="0" data-entity="${e.stacks}">${svgIcon(ICONS.stack)}${esc(countText(stacks))} ${esc(this._t("stacks").toLowerCase())}</span>`);
     const images = this._s(e.image_count);
     if (images)
-      foot.push(`<span class="clickable" role="button" tabindex="0" data-entity="${e.image_count}">${svgIcon(ICONS.image)}${esc(images.state)} ${esc(this._t("images").toLowerCase())}</span>`);
+      foot.push(`<span class="clickable" role="button" tabindex="0" data-entity="${e.image_count}">${svgIcon(ICONS.image)}${esc(countText(images))} ${esc(this._t("images").toLowerCase())}</span>`);
     if (this._config.show_updates !== false && cs.entity)
       foot.push(
         `<span class="clickable ${cs.updates > 0 ? "upd" : ""}" role="button" tabindex="0" data-entity="${cs.entity}">${svgIcon(ICONS.update)}${esc(cs.updates)} ${esc(
