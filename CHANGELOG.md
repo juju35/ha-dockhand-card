@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.7.0
+
+### Changes
+- `dockhand_url` is only used for the logo link when it starts with `http://` or `https://`; any other value falls back to the detected Dockhand URL.
+- Count tiles and the mini card footer show "—" instead of the raw `unknown` / `unavailable` state.
+- The card only re-renders when something it shows changes, and updates the page in place: keyboard focus, hover and text selection survive updates, and the bars, rings and chevrons animate again.
+- Values coming from the Dockhand API (CPU count, running containers, pending updates) are escaped before display.
+- Keyboard access: clickable items can be reached with Tab and opened with Enter or Space, with a visible focus outline; fold titles announce whether they are open.
+- Restart / start / stop failures are logged instead of raising unhandled errors; the error message gives the right minimum Home Assistant version (2024.8); the card size follows the sections shown.
+
+### Maintenance
+- CI hardened: actions pinned by commit SHA, read-only token permissions, Dependabot for action updates, duplication report annotated on pull requests.
+- Unit tests (`npm test`, run in CI).
+
 ## 1.6.1
 
 ### Maintenance
