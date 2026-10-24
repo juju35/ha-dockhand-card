@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.1
+
+### Fixes
+- Keyboard focus stays on the stack or container you were on when the list reorders (for example after stopping it): pressing Enter on restart, start/stop or update now always acts on that one, never on its neighbour.
+
+### Maintenance
+- Browser tests (Chromium) for focus and in-place updates, run in CI.
+
 ## 1.7.0
 
 ### Changes
