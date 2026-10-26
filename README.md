@@ -29,6 +29,7 @@ The cards are built on top of the [Dockhand integration](https://github.com/raet
 - Start / stop and restart buttons for stacks and containers (with confirmation)
 - "Only items needing attention" mode: stopped, unhealthy or outdated first
 - Click any value to open its Home Assistant history (more-info dialog)
+- Detail button at the top right of the mini card: it switches to the full card and back; a click anywhere outside the card brings the compact view back
 - Visual editor in the dashboard UI for both cards (no YAML needed)
 - Light and dark mode, English and French
 - Single file, no external dependency, the Dockhand logo is embedded
@@ -105,6 +106,7 @@ title: Docker
 dockhand_url: http://192.168.1.10:3000
 show_logo: true
 show_updates: true
+zoom: true
 language: fr
 ```
 
@@ -125,6 +127,7 @@ language: fr
 | `expand_stacks` | full | `false` | Stacks list expanded when the card loads (click the section title to fold / unfold) |
 | `expand_containers` | full | `false` | Containers list expanded when the card loads (click the section title to fold / unfold) |
 | `show_updates` | mini | `true` | Pending updates in the footer |
+| `zoom` | mini | `true` | Detail button at the top right: switches to the full card and back (`false` removes it) |
 | `language` | both | Auto | Force language: `fr` or `en` (auto-detects from HA settings) |
 
 ## Screenshots
@@ -133,6 +136,7 @@ language: fr
 |---|---|
 | ![card](screenshots/card.png) | ![card dark](screenshots/card-dark.png) |
 | ![mini card](screenshots/mini-card.png) | ![mini card dark](screenshots/mini-card-dark.png) |
+| ![mini card zoomed in](screenshots/mini-card-zoom.png) | ![mini card zoomed in dark](screenshots/mini-card-zoom-dark.png) |
 
 Containers list:
 

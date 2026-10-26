@@ -50,6 +50,8 @@ const shots = [
   { file: "card-containers", type: "dockhand-card", theme: "light", width: 460, config: { show_stats: false, show_counts: false, show_stacks: false, show_containers: true, expand_containers: true } },
   { file: "mini-card", type: "dockhand-mini-card", theme: "light", width: 380, config: {} },
   { file: "mini-card-dark", type: "dockhand-mini-card", theme: "dark", width: 380, config: {} },
+  { file: "mini-card-zoom", type: "dockhand-mini-card", theme: "light", width: 460, config: {}, zoom: true },
+  { file: "mini-card-zoom-dark", type: "dockhand-mini-card", theme: "dark", width: 460, config: {}, zoom: true },
 ];
 
 const browser = await chromium.launch(
@@ -63,13 +65,18 @@ for (const s of shots) {
   await page.addScriptTag({ content: HA_CARD });
   await page.addScriptTag({ content: cardJs });
   await page.evaluate(
-    ({ type, config, states, entities, devices }) => {
+    ({ type, config, states, entities, devices, zoom }) => {
       const el = document.createElement(type);
       el.setConfig({ type: `custom:${type}`, ...config });
       el.hass = { states, entities, devices, language: "en", locale: { language: "en" }, callService: () => {} };
       document.getElementById("root").appendChild(el);
+      // A mouse click (detail 1) on the detail button: the zoomed-in view, without a keyboard focus ring.
+      if (zoom)
+        el.shadowRoot
+          .querySelector(".zoom")
+          .dispatchEvent(new MouseEvent("click", { bubbles: true, composed: true, detail: 1 }));
     },
-    { type: s.type, config: s.config, states, entities, devices }
+    { type: s.type, config: s.config, states, entities, devices, zoom: !!s.zoom }
   );
   await page.waitForTimeout(800);
   const box = await page.locator("#root").boundingBox();
