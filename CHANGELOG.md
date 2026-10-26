@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.0
+
+### Fixes
+- All three card buttons (the `.ctrl` restart and start/stop buttons and the `.zoom` detail button) now carry `type="button"`, instead of relying on the default `type="submit"`. This has no effect today, but prevents an accidental form submission if the card is ever embedded in a `<form>` context.
+
+### Maintenance
+- Test assertions for the zoom button markup updated.
+
 ## 1.8.0
 ### Changes
 - The Dockhand logo in the header fits a 40 × 40 px box on the full card and a 32 × 32 px box on the mini card (was 40 px and 36 px high), like the header icon of the other cards.
