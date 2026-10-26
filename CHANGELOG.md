@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Changes
+- The Dockhand logo in the header fits a 40 × 40 px box on the full card and a 32 × 32 px box on the mini card (was 40 px and 36 px high), like the header icon of the other cards.
+
 ## 1.7.1
 
 ### Fixes
