@@ -356,7 +356,7 @@ const BASE_STYLE = `
           background: color-mix(in srgb, var(--c, var(--dh-ok)) 15%, transparent); color: var(--c, var(--dh-ok)); }
   .bar { height: 4px; border-radius: 3px; background: var(--divider-color, rgba(127,127,127,.25)); overflow: hidden; }
   .bar > div { height: 100%; border-radius: 3px; background: var(--c, var(--dh-orange)); transition: width .6s ease; }
-  .header { display: flex; align-items: center; gap: 10px; padding: 12px 12px 4px; }
+  .header { display: flex; align-items: center; gap: 10px; padding: 12px 12px 8px; }
   .logo { height: 40px; width: 40px; object-fit: contain; flex: none; }
   a.logo-link { display: flex; flex: none; }
   .titles { flex: 1; min-width: 0; }
@@ -841,10 +841,11 @@ class DockhandCard extends DockhandBase {
 // ---------------------------------------------------------------------------
 
 const MINI_STYLE = `
-  .header { padding: 12px 12px 4px; }
   .logo { height: 32px; width: 32px; }
+  /* Top-aligned: the two title lines are a little taller than the 32 px logo. */
+  a.logo-link { align-self: flex-start; }
   .name { font-size: 16px; }
-  .content { padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .content { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; }
   .metric { display: grid; grid-template-columns: 18px 86px 1fr 52px; align-items: center; gap: 8px; font-size: 13px; }
   .metric .icon { color: var(--secondary-text-color); }
   .metric .v { text-align: right; font-weight: 500; }
