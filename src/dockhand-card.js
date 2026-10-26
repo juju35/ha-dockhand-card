@@ -721,13 +721,13 @@ class DockhandCard extends DockhandBase {
     const out = [];
     if (entities.restart && this._s(entities.restart))
       out.push(
-        `<button class="ctrl" title="${esc(this._t("restart"))}" data-key="restart" data-action="restart" data-entity="${entities.restart}" data-label="${esc(
+        `<button type="button" class="ctrl" title="${esc(this._t("restart"))}" data-key="restart" data-action="restart" data-entity="${entities.restart}" data-label="${esc(
           label
         )}">${svgIcon(ICONS.restart)}</button>`
       );
     if (sw)
       out.push(
-        `<button class="ctrl ${sw.state === "on" ? "on" : ""}" title="${esc(this._t("start_stop"))}" data-key="toggle" data-action="toggle" data-entity="${
+        `<button type="button" class="ctrl ${sw.state === "on" ? "on" : ""}" title="${esc(this._t("start_stop"))}" data-key="toggle" data-action="toggle" data-entity="${
           sw.entity_id
         }" data-label="${esc(label)}">${svgIcon(ICONS.power)}</button>`
       );
@@ -911,7 +911,7 @@ class DockhandMiniCard extends DockhandCard {
   _zoomButton() {
     if (this._config.zoom === false) return "";
     const z = this._zoomed;
-    return `<button class="zoom" title="${esc(this._t(z ? "zoom_out" : "zoom_in"))}">${svgIcon(z ? ICONS.collapse : ICONS.expand)}</button>`;
+    return `<button type="button" class="zoom" title="${esc(this._t(z ? "zoom_out" : "zoom_in"))}">${svgIcon(z ? ICONS.collapse : ICONS.expand)}</button>`;
   }
 
   _metric(id, icon, label, pct, display, cls) {

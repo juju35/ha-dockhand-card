@@ -117,7 +117,7 @@ test("the mini card detail button switches to the full card content and back", (
   full._hass = el._hass;
   assert.match(el.html, /class="metric/);
   // Rightmost header element.
-  assert.match(el.html, /<button class="zoom" title="Show the full card">[\s\S]*?<\/button>\s*<\/div>/);
+  assert.match(el.html, /<button type="button" class="zoom" title="Show the full card">[\s\S]*?<\/button>\s*<\/div>/);
   assert.equal(el.getCardSize(), 3);
   let stopped = false;
   el._zoomClick({ ...zoomButton(), stopPropagation: () => (stopped = true) });
@@ -125,8 +125,8 @@ test("the mini card detail button switches to the full card content and back", (
   assert.equal(el._zoomed, true);
   assert.doesNotMatch(el.html, /class="metric/);
   assert.match(el.html, /class="gauges/);
-  assert.equal(el.html.replace(/<button class="zoom"[\s\S]*?<\/button>/, ""), full._render());
-  assert.match(el.html, /<button class="zoom" title="Back to the compact view">/);
+  assert.equal(el.html.replace(/<button type="button" class="zoom"[\s\S]*?<\/button>/, ""), full._render());
+  assert.match(el.html, /<button type="button" class="zoom" title="Back to the compact view">/);
   assert.equal(el.getCardSize(), full.getCardSize());
   assert.deepEqual({ ...el.getGridOptions() }, { ...full.getGridOptions() });
   el._zoomClick(zoomButton());
