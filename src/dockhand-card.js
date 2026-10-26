@@ -25,6 +25,9 @@ const ICONS = {
   power: "M16.56,5.44L15.11,6.89C16.84,7.94 18,9.83 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12C6,9.83 7.16,7.94 8.88,6.88L7.44,5.44C5.36,6.88 4,9.28 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12C20,9.28 18.64,6.88 16.56,5.44M13,3H11V13H13",
   git: "M2.6,10.59L8.38,4.8L10.07,6.5C9.83,7.35 10.22,8.28 11,8.73V14.27C10.4,14.61 10,15.26 10,16A2,2 0 0,0 12,18A2,2 0 0,0 14,16C14,15.26 13.6,14.61 13,14.27V9.41L15.07,11.5C15,11.65 15,11.82 15,12A2,2 0 0,0 17,14A2,2 0 0,0 19,12A2,2 0 0,0 17,10C16.82,10 16.65,10 16.5,10.07L13.93,7.5C14.19,6.57 13.71,5.55 12.78,5.16C12.35,5 11.9,4.96 11.5,5.07L9.8,3.38L10.59,2.6C11.37,1.81 12.63,1.81 13.41,2.6L21.4,10.59C22.19,11.37 22.19,12.63 21.4,13.41L13.41,21.4C12.63,22.19 11.37,22.19 10.59,21.4L2.6,13.41C1.81,12.63 1.81,11.37 2.6,10.59Z",
   alert: "M13 14H11V9H13M13 18H11V16H13M1 21H23L12 2L1 21Z",
+  // mdi:arrow-expand and mdi:arrow-collapse, the mini card's detail button.
+  expand: "M10,21V19H6.41L10.91,14.5L9.5,13.09L5,17.59V14H3V21H10M14.5,10.91L19,6.41V10H21V3H14V5H17.59L13.09,9.5L14.5,10.91Z",
+  collapse: "M19.5,3.09L15,7.59V4H13V11H20V9H16.41L20.91,4.5L19.5,3.09M4,13V15H7.59L3.09,19.5L4.5,20.91L9,16.41V20H11V13H4Z",
 };
 
 const STRINGS = {
@@ -60,6 +63,8 @@ const STRINGS = {
     state_restarting: "Restarting",
     state_created: "Created",
     state_dead: "Dead",
+    zoom_in: "Show the full card",
+    zoom_out: "Back to the compact view",
     // Editor
     environment: "Dockhand environment",
     title: "Title (optional, defaults to the environment name)",
@@ -74,6 +79,8 @@ const STRINGS = {
     expand_stacks: "Stacks list expanded by default",
     expand_containers: "Containers list expanded by default",
     show_updates: "Show pending updates",
+    zoom: "Detail button",
+    zoom_helper: "Switches the mini card to the full card and back",
     language: "Language",
     lang_auto: "Automatic",
   },
@@ -109,6 +116,8 @@ const STRINGS = {
     state_restarting: "Redémarrage",
     state_created: "Créé",
     state_dead: "Mort",
+    zoom_in: "Afficher la carte complète",
+    zoom_out: "Revenir à la vue compacte",
     environment: "Environnement Dockhand",
     title: "Titre (facultatif, nom de l'environnement par défaut)",
     show_logo: "Afficher le logo Dockhand",
@@ -122,6 +131,8 @@ const STRINGS = {
     expand_stacks: "Liste des stacks dépliée par défaut",
     expand_containers: "Liste des conteneurs dépliée par défaut",
     show_updates: "Afficher les mises à jour en attente",
+    zoom: "Bouton de détail",
+    zoom_helper: "Bascule la mini-carte en carte complète, et inversement",
     language: "Langue",
     lang_auto: "Automatique",
   },
@@ -345,14 +356,21 @@ const BASE_STYLE = `
           background: color-mix(in srgb, var(--c, var(--dh-ok)) 15%, transparent); color: var(--c, var(--dh-ok)); }
   .bar { height: 4px; border-radius: 3px; background: var(--divider-color, rgba(127,127,127,.25)); overflow: hidden; }
   .bar > div { height: 100%; border-radius: 3px; background: var(--c, var(--dh-orange)); transition: width .6s ease; }
-  .header { display: flex; align-items: center; gap: 10px; padding: 12px 12px 4px; }
-  .logo { height: 40px; width: auto; flex: none; }
+  .header { display: flex; align-items: center; gap: 10px; padding: 12px 12px 8px; }
+  .logo { height: 40px; width: 40px; object-fit: contain; flex: none; }
   a.logo-link { display: flex; flex: none; }
   .titles { flex: 1; min-width: 0; }
   .name { font-size: 16px; font-weight: 500; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sub { font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .warning { padding: 16px; color: var(--dh-warn); }
+  .zoom { all: unset; flex: none; cursor: pointer; width: 24px; height: 24px; margin: -4px;
+          border-radius: 50%; display: grid; place-items: center; color: var(--secondary-text-color); }
+  .zoom .icon { width: 16px; height: 16px; }
+  .zoom:hover { background: color-mix(in srgb, var(--secondary-text-color) 16%, transparent); color: var(--primary-text-color); }
+  .zoom:focus-visible { outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 1px; }
 `;
+// A click inside a dialog (more-info opened from the card, say) is not a click outside the card.
+const inDialog = (ev) => ev.composedPath().some((n) => ["ha-more-info-dialog", "ha-dialog", "dialog"].includes(n.localName));
 
 class DockhandBase extends HTMLElement {
   constructor() {
@@ -497,7 +515,13 @@ class DockhandBase extends HTMLElement {
               )}</span>`
             : ""
         }
+        ${this._zoomButton()}
       </div>`;
+  }
+
+  // Button at the far right of the header: only the mini card has one.
+  _zoomButton() {
+    return "";
   }
 
   _error(key) {
@@ -817,10 +841,11 @@ class DockhandCard extends DockhandBase {
 // ---------------------------------------------------------------------------
 
 const MINI_STYLE = `
-  .header { padding: 12px 12px 4px; }
-  .logo { height: 36px; }
+  .logo { height: 32px; width: 32px; }
+  /* Top-aligned: the two title lines are a little taller than the 32 px logo. */
+  a.logo-link { align-self: flex-start; }
   .name { font-size: 16px; }
-  .content { padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .content { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; }
   .metric { display: grid; grid-template-columns: 18px 86px 1fr 52px; align-items: center; gap: 8px; font-size: 13px; }
   .metric .icon { color: var(--secondary-text-color); }
   .metric .v { text-align: right; font-weight: 500; }
@@ -830,7 +855,9 @@ const MINI_STYLE = `
   .foot .upd { color: var(--dh-orange); }
 `;
 
-class DockhandMiniCard extends DockhandBase {
+// The mini card extends the full card: its detail button (top right, `zoom: false` removes it) switches it to the
+// full card's content, same configuration, and back; a click anywhere outside the card brings it back too.
+class DockhandMiniCard extends DockhandCard {
   static getConfigElement() {
     return document.createElement("dockhand-mini-card-editor");
   }
@@ -839,12 +866,52 @@ class DockhandMiniCard extends DockhandBase {
     return DockhandCard.getStubConfig(hass);
   }
 
+  constructor() {
+    super();
+    this._zoomed = false;
+    this.shadowRoot.addEventListener("click", (ev) => this._zoomClick(ev));
+    // A click outside the card, and not in a dialog opened from it, brings it back to the compact view.
+    this._onUnzoom = (ev) => {
+      if (this._zoomed && !ev.composedPath().includes(this) && !inDialog(ev)) this._setZoom(false);
+    };
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    document.addEventListener("click", this._onUnzoom, true);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener("click", this._onUnzoom, true);
+  }
+
   getCardSize() {
-    return 3;
+    return this._zoomed ? super.getCardSize() : 3;
   }
 
   getGridOptions() {
-    return { columns: 6, min_columns: 6 };
+    return this._zoomed ? super.getGridOptions() : { columns: 6, min_columns: 6 };
+  }
+
+  _setZoom(zoomed) {
+    this._zoomed = zoomed;
+    this._update();
+  }
+
+  // A click on the detail button: never a tap on anything else of the card.
+  _zoomClick(ev) {
+    if (!ev.target?.closest?.(".zoom")) return;
+    ev.stopPropagation();
+    this._setZoom(!this._zoomed);
+    // Keyboard use (Enter / Space: no click count) keeps the focus on the button.
+    if (ev.detail === 0) this.shadowRoot.querySelector(".zoom")?.focus();
+  }
+
+  _zoomButton() {
+    if (this._config.zoom === false) return "";
+    const z = this._zoomed;
+    return `<button class="zoom" title="${esc(this._t(z ? "zoom_out" : "zoom_in"))}">${svgIcon(z ? ICONS.collapse : ICONS.expand)}</button>`;
   }
 
   _metric(id, icon, label, pct, display, cls) {
@@ -856,6 +923,7 @@ class DockhandMiniCard extends DockhandBase {
   }
 
   _render() {
+    if (this._zoomed) return super._render();
     const { env, error } = findEnv(this._hass, this._config);
     if (error) return this._error(error);
     const e = env.entities;
@@ -951,6 +1019,7 @@ class DockhandEditorBase extends HTMLElement {
     if (!this._form) {
       this._form = document.createElement("ha-form");
       this._form.computeLabel = (s) => t(this._hass, this._config, s.name);
+      this._form.computeHelper = (s) => STRINGS[lang(this._hass, this._config)][`${s.name}_helper`];
       this._form.addEventListener("value-changed", (ev) => {
         ev.stopPropagation();
         const config = { ...ev.detail.value };
@@ -990,7 +1059,10 @@ class DockhandCardEditor extends DockhandEditorBase {
 
 class DockhandMiniCardEditor extends DockhandEditorBase {
   static get toggles() {
-    return [["show_updates", true]];
+    return [
+      ["show_updates", true],
+      ["zoom", true],
+    ];
   }
 }
 

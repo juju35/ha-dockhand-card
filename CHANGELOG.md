@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Changes
+- The Dockhand logo in the header fits a 40 × 40 px box on the full card and a 32 × 32 px box on the mini card (was 40 px and 36 px high), like the header icon of the other cards.
+- Detail button at the top right of the mini card (after the status pill): it shows the full card with the same options (gauges, counters, stacks, containers), and a second click brings the compact view back. A click anywhere outside the card also folds it back; clicks on the card or in a dialog opened from it (more-info) do not. Zoomed in, the logo is the full card's 40 px. New `zoom` option (on by default, in the visual editor): `zoom: false` removes the button.
+- Header geometry: the body starts 8 px below the header on both cards (was 4 px on the full card); on the mini card the logo is top-aligned, 12 px from the card's top edge like the other cards of the family.
+
+### Maintenance
+- Tests for the detail button; light and dark screenshots of the zoomed-in mini card.
+
 ## 1.7.1
 
 ### Fixes
