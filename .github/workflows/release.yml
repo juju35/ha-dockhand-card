@@ -23,11 +23,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-
+      # The runner's preinstalled Node is enough to read package.json: setup-node only runs when
+      # there is actually a release to build.
       - name: Read version
         id: version
         run: |
@@ -40,13 +37,33 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Setup Node
+        if: steps.version.outputs.exists == 'false'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
       - name: Install dependencies
         if: steps.version.outputs.exists == 'false'
         run: npm ci
 
+      # The browser download (no apt) is kept apart from its system libraries, so the apt work all
+      # sits in one time-boxed, retried step and a hung mirror or an unsupported distro cannot
+      # permanently fail the job.
       - name: Install Chromium for the browser tests
         if: steps.version.outputs.exists == 'false'
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
+
+      - name: Install Chromium system deps
+        if: steps.version.outputs.exists == 'false'
+        timeout-minutes: 12
+        run: |
+          for i in 1 2 3; do
+            timeout 150 sudo apt-get update \
+              && timeout 300 npx playwright install-deps chromium \
+              && break
+            echo "apt attempt $i failed or timed out, retrying in 15s"; sleep 15
+          done
 
       - name: Run tests
         if: steps.version.outputs.exists == 'false'

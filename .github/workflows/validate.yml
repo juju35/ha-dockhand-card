@@ -26,8 +26,37 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Read the Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright'].version")" >> "$GITHUB_OUTPUT"
+
+      # The Chromium download is cached between runs; only a Playwright bump re-downloads it.
+      - name: Cache the Playwright browser
+        id: playwright-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      # The browser download (no apt) is kept apart from its system libraries, so the apt work all
+      # sits in one time-boxed, retried step and a hung mirror or an unsupported distro cannot
+      # permanently fail the job.
       - name: Install Chromium for the browser tests
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
+
+      - name: Install Chromium system deps
+        timeout-minutes: 12
+        run: |
+          for i in 1 2 3; do
+            timeout 150 sudo apt-get update \
+              && timeout 300 npx playwright install-deps chromium \
+              && break
+            echo "apt attempt $i failed or timed out, retrying in 15s"; sleep 15
+          done
+
+      - name: Install the Chromium system dependencies (cached browser)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       - name: Build and check the card
         run: npm run check

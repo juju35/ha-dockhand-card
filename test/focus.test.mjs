@@ -39,7 +39,6 @@ const run = async ({ stack, change, noMoveBefore = false }) => {
   await page.addScriptTag({ content: src });
   const res = await page.evaluate(
     ({ states, entities, devices, stack, change }) => {
-      window.confirm = () => true;
       window.calls = [];
       const hass = (st) => ({ states: st, entities, devices, language: "en", callService: (d, s, data) => window.calls.push(`${d}.${s} ${data.entity_id}`) });
       const el = document.createElement("dockhand-card");

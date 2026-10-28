@@ -132,7 +132,7 @@ language: fr
 
 ## Screenshots
 
-| Light | Dark (French, only items needing attention) |
+| Light | Dark (only items needing attention) |
 |---|---|
 | ![card](screenshots/card.png) | ![card dark](screenshots/card-dark.png) |
 | ![mini card](screenshots/mini-card.png) | ![mini card dark](screenshots/mini-card-dark.png) |
@@ -141,6 +141,16 @@ language: fr
 Containers list:
 
 ![containers](screenshots/card-containers.png)
+
+### Animations
+
+| Folding sections | Live gauges | Mini card detail button |
+|---|---|---|
+| ![sections folding and unfolding](screenshots/card-sections.gif) | ![gauges animating on a state change](screenshots/card-gauges.gif) | ![mini card switching to the full card and back](screenshots/mini-card-zoom.gif) |
+
+- `card-sections.gif` — the stacks and containers lists fold and unfold on a click on their title, with the chevron rotating along.
+- `card-gauges.gif` — the CPU and memory rings and labels follow every state change with a smooth transition.
+- `mini-card-zoom.gif` — the detail button switches the mini card to the full card and back.
 
 ## How it works
 
@@ -164,8 +174,10 @@ Thresholds:
 npm install
 npm run build        # bundles src/dockhand-card.js + images/logo.webp into dist/dockhand-card.js
 npm run check        # builds and checks the card (run in CI)
-npm run screenshots  # renders the cards with mock data (scripts/mock-states.mjs) into screenshots/
+npm run screenshots  # renders the cards with mock data (scripts/mock-states.mjs) into screenshots/, PNG and animated GIF (needs ffmpeg)
 ```
+
+The **Screenshots** workflow re-renders `screenshots/` on every pull request touching `src/` or `scripts/` and commits the refreshed captures onto the pull request's branch, so the README always matches the code.
 
 `dist/` is not committed: `npm run build` creates it locally, CI builds it on every push, and the release workflow attaches the built file to the release, which is where HACS downloads it from.
 

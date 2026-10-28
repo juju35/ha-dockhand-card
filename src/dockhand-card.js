@@ -49,9 +49,12 @@ const STRINGS = {
     unhealthy: "Unhealthy",
     sync_error: "Sync error",
     restart: "Restart",
+    stop: "Stop",
+    cancel: "Cancel",
     start_stop: "Start / stop",
     confirm_restart: "Restart {name}?",
     confirm_stop: "Stop {name}?",
+    all_ok: "Nothing to report",
     no_env: "No Dockhand environment found. Is the Dockhand integration installed?",
     unknown_env: "Dockhand environment not found",
     no_registry: "This card needs Home Assistant 2024.8 or later.",
@@ -102,9 +105,12 @@ const STRINGS = {
     unhealthy: "En mauvaise santé",
     sync_error: "Erreur de synchro",
     restart: "Redémarrer",
+    stop: "Arrêter",
+    cancel: "Annuler",
     start_stop: "Démarrer / arrêter",
     confirm_restart: "Redémarrer {name} ?",
     confirm_stop: "Arrêter {name} ?",
+    all_ok: "Rien à signaler",
     no_env: "Aucun environnement Dockhand trouvé. L'intégration Dockhand est-elle installée ?",
     unknown_env: "Environnement Dockhand introuvable",
     no_registry: "Cette carte nécessite Home Assistant 2024.8 ou plus récent.",
@@ -376,6 +382,28 @@ const BASE_STYLE = `
   .zoom:hover { background: color-mix(in srgb, var(--secondary-text-color) 16%, transparent); color: var(--primary-text-color); }
   .zoom:focus-visible { outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 1px; }
 `;
+
+// In-card confirmation popup, as in the other ha-* cards (ha-vacuum-card, ha-system-monitor-card): a backdrop
+// over the card with a small dialog at the top of the card, so it stays in view when the card is long.
+// window.confirm() is blocking and silently neutralised in some webviews; this popup is neither.
+const DIALOG_STYLE = `
+  ha-card.dialog-open { position: relative; min-height: 150px; }
+  .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: flex-start; justify-content: center;
+              padding-top: 12px; box-sizing: border-box; z-index: 9; border-radius: inherit; }
+  .modal { background: var(--card-background-color, #1c1c1c); color: var(--primary-text-color); width: min(92%, 340px); max-height: calc(100% - 24px);
+           box-sizing: border-box; border-radius: 14px; padding: 16px; box-shadow: 0 8px 30px rgba(0,0,0,.4); display: flex; flex-direction: column; gap: 12px; }
+  .modal .msg { font-size: 14px; line-height: 1.4; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  .modal-actions .btn { border: none; border-radius: 8px; padding: 8px 14px; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+                        background: var(--secondary-background-color, rgba(127,127,127,.12)); color: var(--primary-text-color); }
+  .modal-actions .btn.primary { background: var(--primary-color, #03a9f4); color: var(--text-primary-color, #fff); }
+  .modal-actions .btn:focus-visible { outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 2px; }
+`;
+
+// After the confirmation popup closes, clicks on the card are ignored for this long: the second click of a
+// double click on OK would otherwise land on what lies under the button.
+const CONFIRM_GUARD_MS = 400;
+
 // A click inside a dialog (more-info opened from the card, say) is not a click outside the card.
 const inDialog = (ev) => ev.composedPath().some((n) => ["ha-more-info-dialog", "ha-dialog", "dialog"].includes(n.localName));
 
@@ -392,6 +420,13 @@ class DockhandBase extends HTMLElement {
         ev.target.click();
       }
     });
+    // Escape closes the confirmation popup (as Cancel). Listened on the window while the popup is open:
+    // a re-render or a click on its text can take the focus out of the card.
+    this._onKey = (ev) => {
+      if (ev.key !== "Escape" || !this._confirm) return;
+      ev.stopPropagation();
+      this._closeConfirm();
+    };
   }
 
   set hass(hass) {
@@ -411,16 +446,22 @@ class DockhandBase extends HTMLElement {
   // A click, not a pointerdown: folding on press would shift the layout under the pointer before the click.
   connectedCallback() {
     this._onOutside ??= (ev) => {
-      if (!this._folds || !Object.keys(this._folds).length) return;
-      if (ev.composedPath().includes(this)) return;
-      this._folds = {};
-      this._update();
+      const foldsOpen = this._folds && Object.keys(this._folds).length;
+      if ((!foldsOpen && !this._confirm) || ev.composedPath().includes(this) || inDialog(ev)) return;
+      if (this._confirm) this._closeConfirm();
+      if (foldsOpen) {
+        this._folds = {};
+        this._update();
+      }
     };
     document.addEventListener("click", this._onOutside, true);
+    // Reattached with the popup still open (view switch, editor): Escape keeps closing it.
+    if (this._confirm) window.addEventListener("keydown", this._onKey);
   }
 
   disconnectedCallback() {
     document.removeEventListener("click", this._onOutside, true);
+    window.removeEventListener("keydown", this._onKey);
   }
 
   setConfig(config) {
@@ -453,7 +494,9 @@ class DockhandBase extends HTMLElement {
   _update(sig) {
     if (!this._hass || !this._config) return;
     this._sig = sig ?? this._signature();
-    const html = this._render();
+    let html = this._render();
+    if (this._confirm)
+      html = html.replace(/<ha-card>([\s\S]*)<\/ha-card>\s*$/, (_, inner) => `<ha-card class="dialog-open">${inner}${this._confirmHtml()}</ha-card>`);
     if (html !== this._html) {
       this._html = html;
       morph(this.shadowRoot, html);
@@ -468,7 +511,26 @@ class DockhandBase extends HTMLElement {
   }
 
   _onClick(ev) {
-    const el = ev.composedPath().find((n) => n.dataset && (n.dataset.entity || n.dataset.action));
+    const path = ev.composedPath();
+    const el = path.find((n) => n.dataset && (n.dataset.entity || n.dataset.action));
+    // Just closed: the rest of a double click on OK does nothing.
+    if (!this._confirm && Date.now() - (this._confirmClosedAt ?? 0) < CONFIRM_GUARD_MS) {
+      ev.stopPropagation();
+      return;
+    }
+    // Confirmation popup open: only its buttons and the backdrop itself (outside the dialog) act.
+    if (this._confirm) {
+      ev.stopPropagation();
+      const action = el?.dataset.action;
+      if (action === "confirm_ok") {
+        const { run } = this._confirm;
+        this._closeConfirm();
+        run();
+      } else if (action === "confirm_cancel" || (action === "confirm_backdrop" && path[0] === el)) {
+        this._closeConfirm();
+      }
+      return;
+    }
     if (!el) return;
     ev.stopPropagation();
     const { action, entity, label } = el.dataset;
@@ -476,14 +538,53 @@ class DockhandBase extends HTMLElement {
       this._folds = { ...this._folds, [el.dataset.section]: !this._isOpen(el.dataset.section) };
       this._update();
     } else if (action === "restart") {
-      if (window.confirm(this._t("confirm_restart", { name: label }))) this._call("button", "press", { entity_id: entity });
+      this._openConfirm({
+        text: this._t("confirm_restart", { name: label }),
+        ok: this._t("restart"),
+        run: () => this._call("button", "press", { entity_id: entity }),
+      });
     } else if (action === "toggle") {
       const on = this._s(entity)?.state === "on";
-      if (!on || window.confirm(this._t("confirm_stop", { name: label })))
-        this._call("switch", on ? "turn_off" : "turn_on", { entity_id: entity });
+      if (!on) this._call("switch", "turn_on", { entity_id: entity });
+      else
+        this._openConfirm({
+          text: this._t("confirm_stop", { name: label }),
+          ok: this._t("stop"),
+          run: () => this._call("switch", "turn_off", { entity_id: entity }),
+        });
     } else if (entity) {
       this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId: entity }, bubbles: true, composed: true }));
     }
+  }
+
+  // In-card confirmation before stopping or restarting (see DIALOG_STYLE): Cancel, Escape, the backdrop
+  // and a click outside the card all close it without acting.
+  _openConfirm(confirm) {
+    this._confirm = confirm;
+    window.addEventListener("keydown", this._onKey);
+    this._update();
+    // preventScroll: opening the popup must not bring a scrolled page back to the card.
+    this.shadowRoot.querySelector?.(".modal .primary")?.focus({ preventScroll: true });
+  }
+
+  _closeConfirm() {
+    this._confirm = null;
+    this._confirmClosedAt = Date.now();
+    window.removeEventListener("keydown", this._onKey);
+    this._update();
+  }
+
+  _confirmHtml() {
+    const c = this._confirm;
+    return `<div class="backdrop" data-action="confirm_backdrop">
+      <div class="modal" role="dialog" aria-modal="true">
+        <div class="msg">${esc(c.text)}</div>
+        <div class="modal-actions">
+          <button type="button" class="btn" data-action="confirm_cancel">${esc(this._t("cancel"))}</button>
+          <button type="button" class="btn primary" data-action="confirm_ok">${esc(c.ok)}</button>
+        </div>
+      </div>
+    </div>`;
   }
 
   // Logo target: dockhand_url option, else the Dockhand web UI advertised by the integration
@@ -517,7 +618,7 @@ class DockhandBase extends HTMLElement {
         </div>
         ${
           online
-            ? `<span class="chip clickable ${isOnline ? "ok" : "crit"}" role="button" tabindex="0" data-entity="${online.entity_id}"><span class="dot"></span>${this._t(
+            ? `<span class="chip clickable ${isOnline ? "ok" : "crit"}" role="button" tabindex="0" data-entity="${esc(online.entity_id)}"><span class="dot"></span>${this._t(
                 isOnline ? "online" : "offline"
               )}</span>`
             : ""
@@ -532,7 +633,7 @@ class DockhandBase extends HTMLElement {
   }
 
   _error(key) {
-    return `<style>${BASE_STYLE}</style><ha-card><div class="warning">${esc(
+    return `<style>${BASE_STYLE}${DIALOG_STYLE}</style><ha-card><div class="warning">${esc(
       key === "unknown_env" ? `${this._t(key)}: ${this._config.environment}` : this._t(key)
     )}</div></ha-card>`;
   }
@@ -627,17 +728,19 @@ class DockhandCard extends DockhandBase {
   }
 
   // Rows of about 50 px: header, gauges, counter tiles, then each list title and, when the list is
-  // open, its rows.
+  // open, its rows — the ones actually listed: only_problems filters them (as _section does), down to
+  // a single "nothing to report" line when none needs attention.
   getCardSize() {
     const c = this._config || {};
     let size = 1 + (c.show_stats !== false ? 2 : 0) + (c.show_counts !== false ? 1 : 0);
     const env = this._hass && this._config ? findEnv(this._hass, c).env : null;
-    for (const [key, shown] of [
-      ["stacks", c.show_stacks !== false],
-      ["containers", c.show_containers === true],
+    for (const [key, shown, problem] of [
+      ["stacks", c.show_stacks !== false, (st) => this._stackProblem(st)],
+      ["containers", c.show_containers === true, (ct) => this._containerProblem(ct)],
     ]) {
-      const n = env ? env[key].length : 0;
-      if (shown && (n || !env)) size += 1 + (this._isOpen(key) ? n : 0);
+      const all = env ? env[key].length : 0;
+      const n = env && c.only_problems ? Math.max(env[key].filter(problem).length, all ? 1 : 0) : all;
+      if (shown && (all || !env)) size += 1 + (this._isOpen(key) ? n : 0);
     }
     return size;
   }
@@ -655,7 +758,7 @@ class DockhandCard extends DockhandBase {
     if (c.show_counts !== false) parts.push(this._counts(env));
     if (c.show_stacks !== false) parts.push(this._stacks(env));
     if (c.show_containers === true) parts.push(this._containers(env));
-    return `<style>${BASE_STYLE}${FULL_STYLE}</style>
+    return `<style>${BASE_STYLE}${DIALOG_STYLE}${FULL_STYLE}</style>
       <ha-card>
         ${this._header(env)}
         <div class="content">${parts.filter(Boolean).join("")}</div>
@@ -663,7 +766,7 @@ class DockhandCard extends DockhandBase {
   }
 
   _gauge(id, label, icon, pct, display, cls) {
-    return `<div class="gauge clickable ${cls}" role="button" tabindex="0" data-entity="${id || ""}">
+    return `<div class="gauge clickable ${cls}" role="button" tabindex="0" data-entity="${esc(id || "")}">
       ${ring(pct)}
       <div class="val">${svgIcon(icon)}<b>${display}</b></div>
       <div class="lbl">${label}</div>
@@ -707,7 +810,7 @@ class DockhandCard extends DockhandBase {
     const cs = this._containerStats(env);
     const tile = (id, icon, label, value, cls = "") =>
       id && this._s(id)
-        ? `<div class="count-tile clickable ${cls}" role="button" tabindex="0" data-key="${id}" data-entity="${id}"><div class="top">${svgIcon(icon)}<span class="v">${esc(
+        ? `<div class="count-tile clickable ${cls}" role="button" tabindex="0" data-key="${esc(id)}" data-entity="${esc(id)}"><div class="top">${svgIcon(icon)}<span class="v">${esc(
             value
           )}</span></div><div class="k">${esc(label)}</div></div>`
         : "";
@@ -728,14 +831,14 @@ class DockhandCard extends DockhandBase {
     const out = [];
     if (entities.restart && this._s(entities.restart))
       out.push(
-        `<button type="button" class="ctrl" title="${esc(this._t("restart"))}" data-key="restart" data-action="restart" data-entity="${entities.restart}" data-label="${esc(
+        `<button type="button" class="ctrl" title="${esc(this._t("restart"))}" data-key="restart" data-action="restart" data-entity="${esc(entities.restart)}" data-label="${esc(
           label
         )}">${svgIcon(ICONS.restart)}</button>`
       );
     if (sw)
       out.push(
         `<button type="button" class="ctrl ${sw.state === "on" ? "on" : ""}" title="${esc(this._t("start_stop"))}" data-key="toggle" data-action="toggle" data-entity="${
-          sw.entity_id
+          esc(sw.entity_id)
         }" data-label="${esc(label)}">${svgIcon(ICONS.power)}</button>`
       );
     return out.join("");
@@ -747,6 +850,21 @@ class DockhandCard extends DockhandBase {
     return l === k ? state : l;
   }
 
+  // Needs attention: not running, update available or Git sync error — what only_problems keeps.
+  _stackProblem(st) {
+    const e = st.entities;
+    return (
+      stateClass(this._s(e.status)?.state) !== "ok" ||
+      this._s(e.stack_updates_available)?.state === "on" ||
+      this._s(e.git_stack_sync_error)?.state === "on"
+    );
+  }
+
+  _containerProblem(ct) {
+    const e = ct.entities;
+    return stateClass(this._s(e.state)?.state) !== "ok" || this._s(e._update)?.state === "on" || this._s(e.health)?.state === "unhealthy";
+  }
+
   _stacks(env) {
     const rows = env.stacks.map((st) => {
       const e = st.entities;
@@ -756,7 +874,7 @@ class DockhandCard extends DockhandBase {
       const hasUpd = upd?.state === "on";
       const syncErr = this._s(e.git_stack_sync_error)?.state === "on";
       const cls = stateClass(status?.state);
-      const problem = cls !== "ok" || hasUpd || syncErr;
+      const problem = this._stackProblem(st);
       const isGit = /^Git/.test(st.type || "");
       const detail = [
         status ? this._stateLabel(status.state) : null,
@@ -766,7 +884,7 @@ class DockhandCard extends DockhandBase {
         problem,
         html: `<div class="item" data-key="${esc(st.id)}">
           <span class="dot ${cls}"></span>
-          <div class="main clickable" role="button" tabindex="0" data-entity="${e.status || ""}">
+          <div class="main clickable" role="button" tabindex="0" data-entity="${esc(e.status || "")}">
             <div class="title"><span>${esc(st.name)}</span>
               ${isGit ? `<span class="tag">${svgIcon(ICONS.git)}git</span>` : ""}
               ${syncErr ? `<span class="tag alert crit">${esc(this._t("sync_error"))}</span>` : ""}
@@ -775,7 +893,7 @@ class DockhandCard extends DockhandBase {
           </div>
           ${
             hasUpd
-              ? `<span class="badge-update clickable" role="button" tabindex="0" title="${esc(this._t("update_available"))}" data-key="update" data-entity="${upd.entity_id}">${svgIcon(
+              ? `<span class="badge-update clickable" role="button" tabindex="0" title="${esc(this._t("update_available"))}" data-key="update" data-entity="${esc(upd.entity_id)}">${svgIcon(
                   ICONS.update
                 )}</span>`
               : ""
@@ -796,14 +914,14 @@ class DockhandCard extends DockhandBase {
       const hasUpd = upd?.state === "on";
       const cls = stateClass(state?.state);
       const unhealthy = health?.state === "unhealthy";
-      const problem = cls !== "ok" || hasUpd || unhealthy;
+      const problem = this._containerProblem(ct);
       const status = state?.attributes?.status || (state ? this._stateLabel(state.state) : "");
       const image = state?.attributes?.image;
       return {
         problem,
         html: `<div class="item" data-key="${esc(ct.id)}">
           <span class="dot ${unhealthy ? "crit" : cls}"></span>
-          <div class="main clickable" role="button" tabindex="0" data-entity="${e.state || ""}">
+          <div class="main clickable" role="button" tabindex="0" data-entity="${esc(e.state || "")}">
             <div class="title"><span>${esc(state?.attributes?.name || ct.name)}</span>
               ${unhealthy ? `<span class="tag alert crit">${esc(this._t("unhealthy"))}</span>` : ""}
             </div>
@@ -811,7 +929,7 @@ class DockhandCard extends DockhandBase {
           </div>
           ${
             hasUpd
-              ? `<span class="badge-update clickable" role="button" tabindex="0" title="${esc(this._t("update_available"))}" data-key="update" data-entity="${upd.entity_id}">${svgIcon(
+              ? `<span class="badge-update clickable" role="button" tabindex="0" title="${esc(this._t("update_available"))}" data-key="update" data-entity="${esc(upd.entity_id)}">${svgIcon(
                   ICONS.update
                 )}</span>`
               : ""
@@ -838,7 +956,7 @@ class DockhandCard extends DockhandBase {
       <div class="section-title fold ${open ? "" : "closed"}" role="button" tabindex="0" aria-expanded="${open}" data-action="fold" data-section="${key}">${svgIcon(icon)}${esc(
         title
       )}<span class="count">${shown.length}/${rows.length}</span>${svgIcon(ICONS.chevron, "chevron")}</div>
-      ${open ? `<div class="list">${shown.length ? shown.map((r) => r.html).join("") : `<div class="empty">✓</div>`}</div>` : ""}
+      ${open ? `<div class="list">${shown.length ? shown.map((r) => r.html).join("") : `<div class="empty">✓ ${esc(this._t("all_ok"))}</div>`}</div>` : ""}
     </div>`;
   }
 }
@@ -893,6 +1011,13 @@ class DockhandMiniCard extends DockhandCard {
     document.removeEventListener("click", this._onUnzoom, true);
   }
 
+  // A config change (the editor, say) starts over from the compact view: the preview would
+  // otherwise stay zoomed in.
+  setConfig(config) {
+    this._zoomed = false;
+    super.setConfig(config);
+  }
+
   getCardSize() {
     return this._zoomed ? super.getCardSize() : 3;
   }
@@ -922,7 +1047,7 @@ class DockhandMiniCard extends DockhandCard {
   }
 
   _metric(id, icon, label, pct, display, cls) {
-    return `<div class="metric clickable ${cls}" role="button" tabindex="0" data-entity="${id || ""}">
+    return `<div class="metric clickable ${cls}" role="button" tabindex="0" data-entity="${esc(id || "")}">
       ${svgIcon(icon)}<span>${label}</span>
       <div class="bar"><div style="width:${pct === null ? 0 : Math.max(0, Math.min(100, pct))}%"></div></div>
       <span class="v">${display}</span>
@@ -952,17 +1077,17 @@ class DockhandMiniCard extends DockhandCard {
     ];
     const foot = [];
     const stacks = this._s(e.stacks);
-    if (stacks) foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${e.stacks}" data-entity="${e.stacks}">${svgIcon(ICONS.stack)}${esc(countText(stacks))} ${esc(this._t("stacks").toLowerCase())}</span>`);
+    if (stacks) foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${esc(e.stacks)}" data-entity="${esc(e.stacks)}">${svgIcon(ICONS.stack)}${esc(countText(stacks))} ${esc(this._t("stacks").toLowerCase())}</span>`);
     const images = this._s(e.image_count);
     if (images)
-      foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${e.image_count}" data-entity="${e.image_count}">${svgIcon(ICONS.image)}${esc(countText(images))} ${esc(this._t("images").toLowerCase())}</span>`);
+      foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${esc(e.image_count)}" data-entity="${esc(e.image_count)}">${svgIcon(ICONS.image)}${esc(countText(images))} ${esc(this._t("images").toLowerCase())}</span>`);
     if (this._config.show_updates !== false && cs.entity)
       foot.push(
-        `<span class="clickable ${cs.updates > 0 ? "upd" : ""}" role="button" tabindex="0" data-key="${cs.entity}" data-entity="${cs.entity}">${svgIcon(ICONS.update)}${esc(cs.updates)} ${esc(
+        `<span class="clickable ${cs.updates > 0 ? "upd" : ""}" role="button" tabindex="0" data-key="${esc(cs.entity)}" data-entity="${esc(cs.entity)}">${svgIcon(ICONS.update)}${esc(cs.updates)} ${esc(
           this._t("updates").toLowerCase()
         )}</span>`
       );
-    return `<style>${BASE_STYLE}${MINI_STYLE}</style>
+    return `<style>${BASE_STYLE}${DIALOG_STYLE}${MINI_STYLE}</style>
       <ha-card>
         ${this._header(env)}
         <div class="content">
@@ -993,10 +1118,10 @@ class DockhandEditorBase extends HTMLElement {
     this._render();
   }
 
-  _schema() {
+  _schema(envs = listEnvs(this._hass)) {
     const tr = (k) => t(this._hass, this._config, k);
     return [
-      { name: "environment", selector: { select: { mode: "dropdown", options: listEnvs(this._hass) } } },
+      { name: "environment", selector: { select: { mode: "dropdown", options: envs } } },
       { name: "title", selector: { text: {} } },
       { name: "dockhand_url", selector: { text: { type: "url" } } },
       {
@@ -1042,10 +1167,22 @@ class DockhandEditorBase extends HTMLElement {
     }
     const data = { ...this._config };
     for (const [name, def] of toggles) if (data[name] === undefined) data[name] = def;
-    if (!data.environment) data.environment = listEnvs(this._hass)[0]?.value;
+    const envs = listEnvs(this._hass);
+    if (!data.environment) data.environment = envs[0]?.value;
     this._form.hass = this._hass;
-    this._form.data = data;
-    this._form.schema = this._schema();
+    // hass is pushed on every state change of Home Assistant while the editor is open: reassign data and
+    // schema (the schema only depends on the environments and the language) only when they changed, so
+    // ha-form is not re-rendered for unrelated state changes.
+    const dataKey = JSON.stringify(data);
+    if (dataKey !== this._dataKey) {
+      this._dataKey = dataKey;
+      this._form.data = data;
+    }
+    const schemaKey = JSON.stringify([envs, lang(this._hass, this._config)]);
+    if (schemaKey !== this._schemaKey) {
+      this._schemaKey = schemaKey;
+      this._form.schema = this._schema(envs);
+    }
   }
 }
 

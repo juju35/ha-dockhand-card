@@ -165,3 +165,65 @@ test("memory label keeps the used unit when it differs from the total's", () => 
   assert.equal(fmtBytesPair(980 * 1024 ** 2, 62.5 * GB), "980 MB / 62.5 GB");
   assert.equal(fmtBytesPair(12.3 * GB, 62.5 * GB), "12.3 / 62.5 GB");
 });
+
+test("getCardSize applies the only_problems filter, as the rendered sections do", () => {
+  const devs = { ...devices, ct2: { id: "ct2", name: "Docker host – Containers – db", model: "Container", via_device_id: "grp" } };
+  const ents = { ...entities, "sensor.db_state": { entity_id: "sensor.db_state", device_id: "ct2", platform: "dockhand", translation_key: "state" } };
+  const states = { ...baseStates(), "sensor.db_state": { entity_id: "sensor.db_state", state: "exited", attributes: {} } };
+  const mk = (config) => {
+    const el = new DockhandCard();
+    el._config = config;
+    el._hass = { states, entities: ents, devices: devs, language: "en" };
+    return el;
+  };
+  const config = { show_containers: true, expand_containers: true };
+  assert.equal(mk(config).getCardSize(), 7); // header + gauges + counts + title + both containers
+  assert.equal(mk({ ...config, only_problems: true }).getCardSize(), 6); // only the stopped container is listed
+});
+
+test("restart asks for an in-card confirmation, Cancel closes it without acting", async () => {
+  const el = make(DockhandCard, baseStates());
+  const calls = [];
+  el._hass.callService = (d, s, data) => calls.push(`${d}.${s} ${data.entity_id}`);
+  el._update = () => {
+    let html = el._render();
+    if (el._confirm) html = html.replace(/<ha-card>([\s\S]*)<\/ha-card>\s*$/, (_, inner) => `<ha-card class="dialog-open">${inner}${el._confirmHtml()}</ha-card>`);
+    el.html = html;
+  };
+  el._onClick(click([{ dataset: { action: "restart", entity: "button.web_restart", label: "web" } }]));
+  await null;
+  assert.ok(el._confirm, "no confirmation opened");
+  assert.deepEqual(calls, []);
+  assert.match(el.html, /class="dialog-open"/);
+  assert.match(el.html, /Restart web\?/);
+  el._onClick(click([{ dataset: { action: "confirm_cancel" } }]));
+  await null;
+  assert.equal(el._confirm, null);
+  assert.deepEqual(calls, []);
+  assert.doesNotMatch(el.html, /class="dialog-open"/);
+});
+
+test("stopping asks for an in-card confirmation, starting does not", async () => {
+  const states = { ...baseStates(), "switch.web": { entity_id: "switch.web", state: "on", attributes: {} } };
+  const el = make(DockhandCard, states);
+  const calls = [];
+  el._hass.callService = (d, s, data) => calls.push(`${d}.${s} ${data.entity_id}`);
+  el._update = () => {};
+  el._onClick(click([{ dataset: { action: "toggle", entity: "switch.web", label: "web" } }]));
+  await null;
+  assert.ok(el._confirm);
+  assert.deepEqual(calls, []);
+  el._onClick(click([{ dataset: { action: "confirm_ok" } }]));
+  await null;
+  assert.deepEqual(calls, ["switch.turn_off switch.web"]);
+  assert.equal(el._confirm, null);
+  // Starting a stopped switch needs no confirmation.
+  const el2 = make(DockhandCard, baseStates());
+  const calls2 = [];
+  el2._hass.callService = (d, s, data) => calls2.push(`${d}.${s} ${data.entity_id}`);
+  el2._update = () => {};
+  el2._onClick(click([{ dataset: { action: "toggle", entity: "switch.db", label: "db" } }]));
+  await null;
+  assert.equal(el2._confirm ?? null, null);
+  assert.deepEqual(calls2, ["switch.turn_on switch.db"]);
+});
