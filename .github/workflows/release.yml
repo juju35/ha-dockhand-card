@@ -23,11 +23,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-
+      # The runner's preinstalled Node is enough to read package.json: setup-node only runs when
+      # there is actually a release to build.
       - name: Read version
         id: version
         run: |
@@ -39,6 +36,12 @@ jobs:
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Setup Node
+        if: steps.version.outputs.exists == 'false'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
 
       - name: Install dependencies
         if: steps.version.outputs.exists == 'false'
