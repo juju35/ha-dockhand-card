@@ -175,6 +175,13 @@ const fmtBytes = (b) => {
   return `${v.includes(".") ? v.replace(/\.?0+$/, "") : v} ${units[i]}`;
 };
 
+// "used / total" label: the unit of used is dropped only when it matches the total's.
+const fmtBytesPair = (used, total) => {
+  const u = fmtBytes(used);
+  const t = fmtBytes(total);
+  return `${u.split(" ")[1] === t.split(" ")[1] ? u.split(" ")[0] : u} / ${t}`;
+};
+
 const level = (v, warn, crit) => (v === null ? "" : v >= crit ? "crit" : v >= warn ? "warn" : "ok");
 
 // Status → color class for containers and stacks.
@@ -673,7 +680,7 @@ class DockhandCard extends DockhandBase {
     const total = memS?.attributes?.memory_total_bytes;
     const cs = this._containerStats(env);
     const runPct = cs.total ? (100 * (cs.running ?? 0)) / cs.total : null;
-    const memLabel = used && total ? `${this._t("memory")}<small>${fmtBytes(used).split(" ")[0]} / ${fmtBytes(total)}</small>` : this._t("memory");
+    const memLabel = used && total ? `${this._t("memory")}<small>${fmtBytesPair(used, total)}</small>` : this._t("memory");
     return `<div class="gauges">
       ${this._gauge(
         env.entities.cpu_usage,
