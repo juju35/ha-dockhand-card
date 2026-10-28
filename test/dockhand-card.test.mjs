@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { load } from "./load.mjs";
 
-const { DockhandCard, DockhandMiniCard, resolve, sameSig } = load("dockhand-card.js", [
+const { DockhandCard, DockhandMiniCard, resolve, sameSig, fmtBytesPair } = load("dockhand-card.js", [
   "DockhandCard",
   "DockhandMiniCard",
   "resolve",
   "sameSig",
+  "fmtBytesPair",
 ]);
 
 const devices = {
@@ -157,4 +158,10 @@ test("a click outside the mini card collapses it, a click inside or in a dialog 
 test("zoom: false removes the mini card detail button, the full card has none", () => {
   assert.doesNotMatch(zoomCard({ zoom: false }).html, /class="zoom"/);
   assert.doesNotMatch(make(DockhandCard, baseStates())._render(), /class="zoom"/);
+});
+
+test("memory label keeps the used unit when it differs from the total's", () => {
+  const GB = 1024 ** 3;
+  assert.equal(fmtBytesPair(980 * 1024 ** 2, 62.5 * GB), "980 MB / 62.5 GB");
+  assert.equal(fmtBytesPair(12.3 * GB, 62.5 * GB), "12.3 / 62.5 GB");
 });
