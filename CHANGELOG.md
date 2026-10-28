@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.10.0
+
+### Changes
+- Restart and stop now ask for confirmation in a popup inside the card (Cancel / OK, Escape or a click outside to cancel) instead of the browser's `window.confirm()`, which blocks the page and is silently skipped in some webviews. A double click no longer sends the action twice.
+- Empty filtered lists (`only_problems`) show a translated "Nothing to report" label instead of a bare ✓.
+
+### Fixes
+- Memory gauge label keeps the unit of the used value when it differs from the total's: 980 MB used of 62.5 GB now reads "980 MB / 62.5 GB" instead of "980 / 62.5 GB".
+- The card size follows `only_problems` and counts only the rows actually listed.
+- Visual editor: the form is no longer re-rendered on every unrelated Home Assistant state change while editing.
+- Mini card: changing the configuration resets the zoom, so the editor preview starts from the compact view.
+- Entity and key attributes are escaped everywhere they are interpolated.
+
+### Maintenance
+- Release gated on the unit tests; unused ruff tooling dropped.
+- New Screenshots workflow regenerating `screenshots/` on pull requests; Playwright Chromium cached in Validate, Playwright lockfile bumped to 1.64.1 so Chromium installs again on current runners.
+- One GIF per animation (sections folding, gauge transitions, mini card zoom) in a new README *Animations* section; PNG screenshots regenerated, dark capture caption fixed.
+
 ## 1.9.0
 
 ### Fixes
