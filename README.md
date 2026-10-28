@@ -31,7 +31,7 @@ The cards are built on top of the [Dockhand integration](https://github.com/raet
 - Click any value to open its Home Assistant history (more-info dialog)
 - Detail button at the top right of the mini card: it switches to the full card and back; a click anywhere outside the card brings the compact view back
 - Visual editor in the dashboard UI for both cards (no YAML needed)
-- Light and dark mode, English and French
+- Light and dark mode, English, French, German and Spanish
 - Single file, no external dependency, the Dockhand logo is embedded
 
 ## Prerequisites
@@ -128,7 +128,7 @@ language: fr
 | `expand_containers` | full | `false` | Containers list expanded when the card loads (click the section title to fold / unfold) |
 | `show_updates` | mini | `true` | Pending updates in the footer |
 | `zoom` | mini | `true` | Detail button at the top right: switches to the full card and back (`false` removes it) |
-| `language` | both | Auto | Force language: `fr` or `en` (auto-detects from HA settings) |
+| `language` | both | Auto | Force language: `en`, `fr`, `de` or `es` (auto-detects from HA settings) |
 
 ## Screenshots
 
@@ -195,6 +195,8 @@ The cards auto-detect the language from your Home Assistant settings. Currently 
 |---|---|
 | English | `en` |
 | Français | `fr` |
+| Deutsch | `de` |
+| Español | `es` |
 
 Contributions for additional languages are welcome!
 
