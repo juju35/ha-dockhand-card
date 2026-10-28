@@ -16,7 +16,7 @@ export const load = (file, names) => {
   const context = {
     HTMLElement,
     customElements: { get: (n) => registry.get(n), define: (n, c) => registry.set(n, c) },
-    window: {},
+    window: { addEventListener() {}, removeEventListener() {} },
     document: { addEventListener() {}, removeEventListener() {} },
     console: { info() {}, error() {}, log() {} },
     CustomEvent: class {},
