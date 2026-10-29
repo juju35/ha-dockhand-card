@@ -344,3 +344,33 @@ test("unavailable and unknown states are translated", () => {
   assert.equal(el._stateLabel("unavailable"), "Indisponible");
   assert.equal(el._stateLabel("unknown"), "Inconnu");
 });
+
+test("header subtitle hides unavailable or unknown host sensors", () => {
+  const ents = { ...entities };
+  const addEnv = (id, key) => (ents[id] = { entity_id: id, device_id: "env", platform: "dockhand", translation_key: key });
+  addEnv("sensor.docker_version", "host_docker_version");
+  addEnv("sensor.platform", "host_platform");
+  addEnv("sensor.conn", "connection_type");
+  const sub = (docker, platform, conn) => {
+    const el = new DockhandCard();
+    el._config = { language: "fr" };
+    const st = (id, state) => ({ entity_id: id, state, attributes: {} });
+    el._hass = {
+      states: {
+        ...baseStates(),
+        "sensor.docker_version": st("sensor.docker_version", docker),
+        "sensor.platform": st("sensor.platform", platform),
+        "sensor.conn": st("sensor.conn", conn),
+      },
+      entities: ents,
+      devices,
+      language: "fr",
+    };
+    return el._render().match(/<div class="sub">([^<]*)<\/div>/)?.[1] ?? null;
+  };
+  assert.equal(sub("unavailable", "unavailable", "unavailable"), null);
+  assert.equal(sub("unknown", "unknown", "unknown"), null);
+  assert.equal(sub("unavailable", "linux", "socket"), "linux · socket");
+  assert.equal(sub("27.3.1", "unavailable", "socket"), "Docker 27.3.1 · socket");
+  assert.equal(sub("27.3.1", "linux", "socket"), "Docker 27.3.1 · linux · socket");
+});
