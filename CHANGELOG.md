@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.11.2
+
+### Fixes
+- The header no longer shows "Docker unavailable" (untranslated) when the Docker version sensor is unavailable; it is hidden like the platform and connection type.
+
 ## 1.11.1
 
 ### Fixes

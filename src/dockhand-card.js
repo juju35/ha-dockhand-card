@@ -766,7 +766,7 @@ class DockhandBase extends HTMLElement {
     const docker = this._s(env.entities.host_docker_version)?.state;
     const platform = this._s(env.entities.host_platform)?.state;
     const conn = this._s(env.entities.connection_type)?.state;
-    const sub = [docker && docker !== "unknown" ? `Docker ${docker}` : null, platform, conn].filter((v) => v && v !== "unknown" && v !== "unavailable");
+    const sub = [docker && docker !== "unknown" && docker !== "unavailable" ? `Docker ${docker}` : null, platform, conn].filter((v) => v && v !== "unknown" && v !== "unavailable");
     return `
       <div class="header">
         ${
