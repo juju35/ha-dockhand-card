@@ -35,12 +35,17 @@ const STRINGS = {
     cpu: "CPU",
     memory: "Memory",
     containers: "Containers",
-    container: "Container",
     stacks: "Stacks",
     images: "Images",
     volumes: "Volumes",
     networks: "Networks",
     updates: "Updates",
+    // Inline lowercase forms ("3 containers", "5 stacks"): German keeps its capitalised nouns.
+    container_lc: "container",
+    containers_lc: "containers",
+    stacks_lc: "stacks",
+    images_lc: "images",
+    updates_lc: "updates",
     running: "running",
     cores: "cores",
     online: "Online",
@@ -66,6 +71,8 @@ const STRINGS = {
     state_restarting: "Restarting",
     state_created: "Created",
     state_dead: "Dead",
+    state_unavailable: "Unavailable",
+    state_unknown: "Unknown",
     zoom_in: "Show the full card",
     zoom_out: "Back to the compact view",
     // Editor
@@ -91,12 +98,16 @@ const STRINGS = {
     cpu: "CPU",
     memory: "Mémoire",
     containers: "Conteneurs",
-    container: "Conteneur",
     stacks: "Stacks",
     images: "Images",
     volumes: "Volumes",
     networks: "Réseaux",
     updates: "Mises à jour",
+    container_lc: "conteneur",
+    containers_lc: "conteneurs",
+    stacks_lc: "stacks",
+    images_lc: "images",
+    updates_lc: "mises à jour",
     running: "actifs",
     cores: "cœurs",
     online: "En ligne",
@@ -122,6 +133,8 @@ const STRINGS = {
     state_restarting: "Redémarrage",
     state_created: "Créé",
     state_dead: "Mort",
+    state_unavailable: "Indisponible",
+    state_unknown: "Inconnu",
     zoom_in: "Afficher la carte complète",
     zoom_out: "Revenir à la vue compacte",
     environment: "Environnement Dockhand",
@@ -144,14 +157,18 @@ const STRINGS = {
   },
   de: {
     cpu: "CPU",
-    memory: "Arbeitsspeicher",
+    memory: "Speicher",
     containers: "Container",
-    container: "Container",
     stacks: "Stacks",
     images: "Images",
     volumes: "Volumes",
     networks: "Netzwerke",
     updates: "Updates",
+    container_lc: "Container",
+    containers_lc: "Container",
+    stacks_lc: "Stacks",
+    images_lc: "Images",
+    updates_lc: "Updates",
     running: "aktiv",
     cores: "Kerne",
     online: "Online",
@@ -177,13 +194,15 @@ const STRINGS = {
     state_restarting: "Startet neu",
     state_created: "Erstellt",
     state_dead: "Tot",
+    state_unavailable: "Nicht verfügbar",
+    state_unknown: "Unbekannt",
     zoom_in: "Vollständige Karte anzeigen",
     zoom_out: "Zurück zur kompakten Ansicht",
     environment: "Dockhand-Umgebung",
     title: "Titel (optional, standardmäßig der Name der Umgebung)",
     show_logo: "Dockhand-Logo anzeigen",
     dockhand_url: "Vom Logo geöffnete Dockhand-URL (optional, wird aus der Integration ermittelt)",
-    show_stats: "CPU, Arbeitsspeicher und Container anzeigen",
+    show_stats: "CPU, Speicher und Container anzeigen",
     show_counts: "Zähler anzeigen (Stacks, Images…)",
     show_stacks: "Stacks anzeigen",
     show_containers: "Container anzeigen",
@@ -201,12 +220,16 @@ const STRINGS = {
     cpu: "CPU",
     memory: "Memoria",
     containers: "Contenedores",
-    container: "Contenedor",
     stacks: "Stacks",
     images: "Imágenes",
     volumes: "Volúmenes",
     networks: "Redes",
-    updates: "Actualizaciones",
+    updates: "Actualiz.",
+    container_lc: "contenedor",
+    containers_lc: "contenedores",
+    stacks_lc: "stacks",
+    images_lc: "imágenes",
+    updates_lc: "actualizaciones",
     running: "en ejecución",
     cores: "núcleos",
     online: "En línea",
@@ -220,7 +243,7 @@ const STRINGS = {
     start_stop: "Iniciar / detener",
     confirm_restart: "¿Reiniciar {name}?",
     confirm_stop: "¿Detener {name}?",
-    all_ok: "Nada que reportar",
+    all_ok: "Sin incidencias",
     no_env: "No se encontró ningún entorno de Dockhand. ¿Está instalada la integración Dockhand?",
     unknown_env: "Entorno de Dockhand no encontrado",
     no_registry: "Esta tarjeta requiere Home Assistant 2024.8 o posterior.",
@@ -232,6 +255,8 @@ const STRINGS = {
     state_restarting: "Reiniciando",
     state_created: "Creado",
     state_dead: "Muerto",
+    state_unavailable: "No disponible",
+    state_unknown: "Desconocido",
     zoom_in: "Mostrar la tarjeta completa",
     zoom_out: "Volver a la vista compacta",
     environment: "Entorno de Dockhand",
@@ -506,7 +531,7 @@ const DIALOG_STYLE = `
   .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
   .modal-actions .btn { border: none; border-radius: 8px; padding: 8px 14px; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
                         background: var(--secondary-background-color, rgba(127,127,127,.12)); color: var(--primary-text-color); }
-  .modal-actions .btn.primary { background: var(--primary-color, #03a9f4); color: var(--text-primary-color, #fff); }
+  .modal-actions .btn.primary { background: color-mix(in srgb, var(--primary-color, #03a9f4) 15%, transparent); color: var(--primary-color, #03a9f4); }
   .modal-actions .btn:focus-visible { outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 2px; }
 `;
 
@@ -532,8 +557,18 @@ class DockhandBase extends HTMLElement {
     });
     // Escape closes the confirmation popup (as Cancel). Listened on the window while the popup is open:
     // a re-render or a click on its text can take the focus out of the card.
+    // Tab and Shift+Tab stay on the popup's two buttons while it is open.
     this._onKey = (ev) => {
-      if (ev.key !== "Escape" || !this._confirm) return;
+      if (!this._confirm) return;
+      if (ev.key === "Tab") {
+        const btns = [...(this.shadowRoot.querySelectorAll?.(".modal .btn") || [])];
+        if (!btns.length) return;
+        ev.preventDefault();
+        const i = btns.indexOf(this.shadowRoot.activeElement);
+        btns[(i + (ev.shiftKey ? -1 : 1) + btns.length) % btns.length].focus({ preventScroll: true });
+        return;
+      }
+      if (ev.key !== "Escape") return;
       ev.stopPropagation();
       this._closeConfirm();
     };
@@ -558,7 +593,8 @@ class DockhandBase extends HTMLElement {
     this._onOutside ??= (ev) => {
       const foldsOpen = this._folds && Object.keys(this._folds).length;
       if ((!foldsOpen && !this._confirm) || ev.composedPath().includes(this) || inDialog(ev)) return;
-      if (this._confirm) this._closeConfirm();
+      // Closed by a click elsewhere on the page: the focus goes where that click put it.
+      if (this._confirm) this._closeConfirm(false);
       if (foldsOpen) {
         this._folds = {};
         this._update();
@@ -648,20 +684,28 @@ class DockhandBase extends HTMLElement {
       this._folds = { ...this._folds, [el.dataset.section]: !this._isOpen(el.dataset.section) };
       this._update();
     } else if (action === "restart") {
-      this._openConfirm({
-        text: this._t("confirm_restart", { name: label }),
-        ok: this._t("restart"),
-        run: () => this._call("button", "press", { entity_id: entity }),
-      });
+      this._openConfirm(
+        {
+          text: this._t("confirm_restart", { name: label }),
+          ok: this._t("restart"),
+          run: () => this._call("button", "press", { entity_id: entity }),
+        },
+        { action, entity }
+      );
     } else if (action === "toggle") {
-      const on = this._s(entity)?.state === "on";
-      if (!on) this._call("switch", "turn_on", { entity_id: entity });
+      const state = this._s(entity)?.state;
+      // Unavailable or unknown: nothing to start or stop (the button is disabled, keyboard included).
+      if (state !== "on" && state !== "off") return;
+      if (state === "off") this._call("switch", "turn_on", { entity_id: entity });
       else
-        this._openConfirm({
-          text: this._t("confirm_stop", { name: label }),
-          ok: this._t("stop"),
-          run: () => this._call("switch", "turn_off", { entity_id: entity }),
-        });
+        this._openConfirm(
+          {
+            text: this._t("confirm_stop", { name: label }),
+            ok: this._t("stop"),
+            run: () => this._call("switch", "turn_off", { entity_id: entity }),
+          },
+          { action, entity }
+        );
     } else if (entity) {
       this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId: entity }, bubbles: true, composed: true }));
     }
@@ -669,19 +713,27 @@ class DockhandBase extends HTMLElement {
 
   // In-card confirmation before stopping or restarting (see DIALOG_STYLE): Cancel, Escape, the backdrop
   // and a click outside the card all close it without acting.
-  _openConfirm(confirm) {
-    this._confirm = confirm;
+  // `from` is the button that opened it: the focus goes back to it when the popup closes.
+  _openConfirm(confirm, from) {
+    this._confirm = { ...confirm, from };
     window.addEventListener("keydown", this._onKey);
     this._update();
     // preventScroll: opening the popup must not bring a scrolled page back to the card.
     this.shadowRoot.querySelector?.(".modal .primary")?.focus({ preventScroll: true });
   }
 
-  _closeConfirm() {
+  _closeConfirm(restoreFocus = true) {
+    const from = this._confirm?.from;
     this._confirm = null;
     this._confirmClosedAt = Date.now();
     window.removeEventListener("keydown", this._onKey);
     this._update();
+    // Looked up again after the render: the opening button may have been re-created meanwhile (entity ids
+    // hold only [a-z0-9_.], safe in the selector).
+    if (restoreFocus && from)
+      this.shadowRoot
+        .querySelector?.(`[data-action="${from.action}"][data-entity="${from.entity}"]`)
+        ?.focus({ preventScroll: true });
   }
 
   _confirmHtml() {
@@ -752,12 +804,14 @@ class DockhandBase extends HTMLElement {
     const s = this._s(env.entities.containers);
     const total = num(s);
     const a = s?.attributes || {};
+    // An unknown or unavailable sensor has no attributes: its pending updates are unknown (a dash), not 0.
+    const known = !!s && s.state !== "unknown" && s.state !== "unavailable";
     return {
       entity: env.entities.containers,
       total,
       running: a.running ?? null,
       unhealthy: a.unhealthy ?? 0,
-      updates: a.pending_updates_total ?? a.pending_updates ?? 0,
+      updates: known ? (a.pending_updates_total ?? a.pending_updates ?? 0) : null,
     };
   }
 }
@@ -821,7 +875,8 @@ const FULL_STYLE = `
   .badge-update .icon { width: 18px; height: 18px; }
   .ctrl { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; border: none;
           background: transparent; color: var(--secondary-text-color); cursor: pointer; flex: none; padding: 0; }
-  .ctrl:hover { background: var(--secondary-background-color, rgba(127,127,127,.12)); }
+  .ctrl:hover:not(:disabled) { background: var(--secondary-background-color, rgba(127,127,127,.12)); }
+  .ctrl:disabled { opacity: .4; cursor: default; }
   .ctrl.on { color: var(--dh-ok); }
   .ctrl .icon { width: 20px; height: 20px; }
   .empty { font-size: 13px; color: var(--secondary-text-color); padding: 4px 0; }
@@ -930,7 +985,7 @@ class DockhandCard extends DockhandBase {
       tile(e.image_count, ICONS.image, this._t("images"), v(e.image_count)),
       tile(e.volume_count, ICONS.volume, this._t("volumes"), v(e.volume_count)),
       tile(e.network_count, ICONS.network, this._t("networks"), v(e.network_count)),
-      tile(cs.entity, ICONS.update, this._t("updates"), cs.updates, cs.updates > 0 ? "has-updates" : ""),
+      tile(cs.entity, ICONS.update, this._t("updates"), cs.updates ?? "—", cs.updates > 0 ? "has-updates" : ""),
     ].filter(Boolean);
     return tiles.length ? `<div class="counts">${tiles.join("")}</div>` : "";
   }
@@ -945,11 +1000,12 @@ class DockhandCard extends DockhandBase {
           label
         )}">${svgIcon(ICONS.restart)}</button>`
       );
+    // An unavailable or unknown switch cannot be started or stopped: its button is shown disabled.
     if (sw)
       out.push(
         `<button type="button" class="ctrl ${sw.state === "on" ? "on" : ""}" title="${esc(this._t("start_stop"))}" data-key="toggle" data-action="toggle" data-entity="${
           esc(sw.entity_id)
-        }" data-label="${esc(label)}">${svgIcon(ICONS.power)}</button>`
+        }" data-label="${esc(label)}"${sw.state === "on" || sw.state === "off" ? "" : " disabled"}>${svgIcon(ICONS.power)}</button>`
       );
     return out.join("");
   }
@@ -979,7 +1035,9 @@ class DockhandCard extends DockhandBase {
     const rows = env.stacks.map((st) => {
       const e = st.entities;
       const status = this._s(e.status);
-      const count = this._s(e.containers_in_stack)?.state ?? status?.attributes?.container_count;
+      // A count only: an unknown or unavailable sensor (or attribute) leaves it out of the detail line.
+      const attrCount = parseFloat(status?.attributes?.container_count);
+      const count = num(this._s(e.containers_in_stack)) ?? (Number.isFinite(attrCount) ? attrCount : null);
       const upd = this._s(e.stack_updates_available);
       const hasUpd = upd?.state === "on";
       const syncErr = this._s(e.git_stack_sync_error)?.state === "on";
@@ -988,7 +1046,7 @@ class DockhandCard extends DockhandBase {
       const isGit = /^Git/.test(st.type || "");
       const detail = [
         status ? this._stateLabel(status.state) : null,
-        count !== undefined && count !== null ? `${count} ${this._t(Number(count) === 1 ? "container" : "containers").toLowerCase()}` : null,
+        count !== null ? `${count} ${this._t(count === 1 ? "container_lc" : "containers_lc")}` : null,
       ].filter(Boolean);
       return {
         problem,
@@ -1083,6 +1141,8 @@ const MINI_STYLE = `
   .content { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; }
   .metric { display: grid; grid-template-columns: 18px 86px 1fr 52px; align-items: center; gap: 8px; font-size: 13px; }
   .metric .icon { color: var(--secondary-text-color); }
+  /* Fixed label column (the bars line up across rows): a longer translation is cut, never drawn over the bar. */
+  .metric .lbl { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .metric .v { text-align: right; font-weight: 500; }
   .foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--secondary-text-color); margin-top: 2px; flex-wrap: wrap; }
   .foot span { display: inline-flex; align-items: center; gap: 4px; }
@@ -1158,7 +1218,7 @@ class DockhandMiniCard extends DockhandCard {
 
   _metric(id, icon, label, pct, display, cls) {
     return `<div class="metric clickable ${cls}" role="button" tabindex="0" data-entity="${esc(id || "")}">
-      ${svgIcon(icon)}<span>${label}</span>
+      ${svgIcon(icon)}<span class="lbl">${label}</span>
       <div class="bar"><div style="width:${pct === null ? 0 : Math.max(0, Math.min(100, pct))}%"></div></div>
       <span class="v">${display}</span>
     </div>`;
@@ -1187,14 +1247,14 @@ class DockhandMiniCard extends DockhandCard {
     ];
     const foot = [];
     const stacks = this._s(e.stacks);
-    if (stacks) foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${esc(e.stacks)}" data-entity="${esc(e.stacks)}">${svgIcon(ICONS.stack)}${esc(countText(stacks))} ${esc(this._t("stacks").toLowerCase())}</span>`);
+    if (stacks) foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${esc(e.stacks)}" data-entity="${esc(e.stacks)}">${svgIcon(ICONS.stack)}${esc(countText(stacks))} ${esc(this._t("stacks_lc"))}</span>`);
     const images = this._s(e.image_count);
     if (images)
-      foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${esc(e.image_count)}" data-entity="${esc(e.image_count)}">${svgIcon(ICONS.image)}${esc(countText(images))} ${esc(this._t("images").toLowerCase())}</span>`);
+      foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${esc(e.image_count)}" data-entity="${esc(e.image_count)}">${svgIcon(ICONS.image)}${esc(countText(images))} ${esc(this._t("images_lc"))}</span>`);
     if (this._config.show_updates !== false && cs.entity)
       foot.push(
-        `<span class="clickable ${cs.updates > 0 ? "upd" : ""}" role="button" tabindex="0" data-key="${esc(cs.entity)}" data-entity="${esc(cs.entity)}">${svgIcon(ICONS.update)}${esc(cs.updates)} ${esc(
-          this._t("updates").toLowerCase()
+        `<span class="clickable ${cs.updates > 0 ? "upd" : ""}" role="button" tabindex="0" data-key="${esc(cs.entity)}" data-entity="${esc(cs.entity)}">${svgIcon(ICONS.update)}${esc(cs.updates ?? "—")} ${esc(
+          this._t("updates_lc")
         )}</span>`
       );
     return `<style>${BASE_STYLE}${DIALOG_STYLE}${MINI_STYLE}</style>

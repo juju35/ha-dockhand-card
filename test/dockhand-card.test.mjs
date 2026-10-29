@@ -218,7 +218,7 @@ test("stopping asks for an in-card confirmation, starting does not", async () =>
   assert.deepEqual(calls, ["switch.turn_off switch.web"]);
   assert.equal(el._confirm, null);
   // Starting a stopped switch needs no confirmation.
-  const el2 = make(DockhandCard, baseStates());
+  const el2 = make(DockhandCard, { ...baseStates(), "switch.db": { entity_id: "switch.db", state: "off", attributes: {} } });
   const calls2 = [];
   el2._hass.callService = (d, s, data) => calls2.push(`${d}.${s} ${data.entity_id}`);
   el2._update = () => {};
@@ -226,4 +226,121 @@ test("stopping asks for an in-card confirmation, starting does not", async () =>
   await null;
   assert.equal(el2._confirm ?? null, null);
   assert.deepEqual(calls2, ["switch.turn_on switch.db"]);
+});
+
+test("an unavailable or unknown switch is neither started nor stopped, its button is disabled", async () => {
+  for (const state of ["unavailable", "unknown"]) {
+    const el = make(DockhandCard, { ...baseStates(), "switch.web": { entity_id: "switch.web", state, attributes: {} } });
+    const calls = [];
+    el._hass.callService = (d, s, data) => calls.push(`${d}.${s} ${data.entity_id}`);
+    el._update = () => {};
+    el._onClick(click([{ dataset: { action: "toggle", entity: "switch.web", label: "web" } }]));
+    await null;
+    assert.equal(el._confirm ?? null, null, state);
+    assert.deepEqual(calls, [], state);
+    assert.match(el._controls({ _switch: "switch.web" }, "web"), / disabled>/, state);
+  }
+  const on = make(DockhandCard, { ...baseStates(), "switch.web": { entity_id: "switch.web", state: "on", attributes: {} } });
+  assert.doesNotMatch(on._controls({ _switch: "switch.web" }, "web"), /disabled/);
+});
+
+test("closing the confirmation gives the focus back to the button that opened it", async () => {
+  const el = make(DockhandCard, baseStates());
+  el._hass.callService = () => {};
+  el._update = () => {};
+  const focused = [];
+  el.shadowRoot.querySelector = (sel) => ({ focus: () => focused.push(sel) });
+  el._onClick(click([{ dataset: { action: "restart", entity: "button.web_restart", label: "web" } }]));
+  el._onClick(click([{ dataset: { action: "confirm_cancel" } }]));
+  assert.equal(focused.at(-1), '[data-action="restart"][data-entity="button.web_restart"]');
+  // Closed by a click elsewhere on the page: the focus is left where that click put it.
+  el._onClick(click([{ dataset: { action: "restart", entity: "button.web_restart", label: "web" } }]));
+  const n = focused.length;
+  el._onOutside ??= null;
+  el.connectedCallback();
+  el._onOutside(click([node("body")]));
+  assert.equal(el._confirm, null);
+  assert.equal(focused.length, n);
+});
+
+test("Tab stays on the confirmation buttons", () => {
+  const el = make(DockhandCard, baseStates());
+  el._update = () => {};
+  const focused = [];
+  const btns = ["cancel", "ok"].map((name) => ({ name, focus: () => focused.push(name) }));
+  el.shadowRoot.querySelector = () => null;
+  el.shadowRoot.querySelectorAll = () => btns;
+  el.shadowRoot.activeElement = btns[1];
+  el._openConfirm({ text: "", ok: "", run() {} });
+  let prevented = false;
+  el._onKey({ key: "Tab", shiftKey: false, preventDefault: () => (prevented = true) });
+  assert.equal(prevented, true);
+  assert.equal(focused.at(-1), "cancel");
+  el.shadowRoot.activeElement = btns[0];
+  el._onKey({ key: "Tab", shiftKey: true, preventDefault() {} });
+  assert.equal(focused.at(-1), "ok");
+});
+
+test("German keeps its capitalised nouns in inline counts", () => {
+  const ents = {
+    ...entities,
+    "sensor.stacks": { entity_id: "sensor.stacks", device_id: "env", platform: "dockhand", translation_key: "stacks" },
+  };
+  const states = { ...baseStates(), "sensor.stacks": { entity_id: "sensor.stacks", state: "5", attributes: {} } };
+  const el = make(DockhandMiniCard, states, { language: "de" });
+  el._hass.entities = ents;
+  const html = el._render();
+  assert.match(html, /5 Stacks/);
+  assert.doesNotMatch(html, /\d (stacks|updates)\b/);
+  const en = make(DockhandMiniCard, states);
+  en._hass.entities = ents;
+  assert.match(en._render(), /5 stacks/);
+});
+
+test("an unavailable containers sensor shows its pending updates as a dash, not 0", () => {
+  const states = { ...baseStates(), "sensor.containers": { entity_id: "sensor.containers", state: "unavailable", attributes: {} } };
+  const env = resolve({ entities, devices }).envs[0];
+  assert.equal(make(DockhandCard, states)._containerStats(env).updates, null);
+  for (const Cls of [DockhandCard, DockhandMiniCard]) {
+    const html = make(Cls, states)._render();
+    assert.doesNotMatch(html, />0 ?(<\/span>)? ?updates/i, Cls.name);
+    assert.doesNotMatch(html, /class="v">0</, Cls.name);
+  }
+  assert.equal(make(DockhandCard, { ...baseStates(), "sensor.containers": { entity_id: "sensor.containers", state: "3", attributes: {} } })._containerStats(env).updates, 0);
+});
+
+test("a stack whose container count is unavailable leaves it out of its detail line", () => {
+  const devs = { ...devices, stk: { id: "stk", name: "Docker host – Stacks – app", model: "Stack", via_device_id: "env" } };
+  const ents = {
+    ...entities,
+    "sensor.app_status": { entity_id: "sensor.app_status", device_id: "stk", platform: "dockhand", translation_key: "status" },
+    "sensor.app_count": { entity_id: "sensor.app_count", device_id: "stk", platform: "dockhand", translation_key: "containers_in_stack" },
+  };
+  const mk = (count, attrs = {}) => {
+    const el = new DockhandCard();
+    el._config = { expand_stacks: true };
+    el._hass = {
+      states: {
+        ...baseStates(),
+        "sensor.app_status": { entity_id: "sensor.app_status", state: "running", attributes: attrs },
+        "sensor.app_count": { entity_id: "sensor.app_count", state: count, attributes: {} },
+      },
+      entities: ents,
+      devices: devs,
+      language: "en",
+    };
+    return el._render();
+  };
+  assert.match(mk("2"), /Running · 2 containers/);
+  assert.match(mk("1"), /Running · 1 container</);
+  const html = mk("unavailable");
+  assert.doesNotMatch(html, /unavailable containers/);
+  assert.match(html, /class="detail">Running</);
+  assert.match(mk("unknown", { container_count: 3 }), /Running · 3 containers/);
+});
+
+test("unavailable and unknown states are translated", () => {
+  const el = make(DockhandCard, baseStates(), { language: "fr" });
+  assert.equal(el._stateLabel("unavailable"), "Indisponible");
+  assert.equal(el._stateLabel("unknown"), "Inconnu");
 });
