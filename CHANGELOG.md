@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.11.1
+
+### Fixes
+- German: inline counts keep their capitalised nouns ("3 Container", "5 Stacks · 12 Images · 2 Updates").
+- Mini card: a long metric label (German "Arbeitsspeicher", now "Speicher") no longer spills over its bar; it is cut with an ellipsis instead.
+- Pending updates show "—" instead of 0 when the containers sensor is unavailable or unknown, like the other counters.
+- A stack whose container count is unavailable no longer reads "unavailable containers".
+- The start / stop button is disabled for an unavailable or unknown switch instead of sending `switch.turn_on`.
+- "Unavailable" and "Unknown" states are translated.
+- Confirmation popup: the OK button follows the smoked-glass style of the other buttons, Tab stays inside the popup and the focus returns to the button that opened it.
+- Spanish: "Sin incidencias" for an empty filtered list, shorter "Actualiz." tile label so it is no longer truncated.
+
+### Maintenance
+- CI: the apt retry loop now fails after 3 attempts, the unguarded duplicate `install-deps` step is gone from Validate, and Screenshots also runs on `package-lock.json` and `images/` changes.
+
 ## 1.11.0
 
 ### Changes
