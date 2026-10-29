@@ -14,6 +14,7 @@
 
 ### Maintenance
 - CI: the apt retry loop now fails after 3 attempts, the unguarded duplicate `install-deps` step is gone from Validate, and Screenshots also runs on `package-lock.json` and `images/` changes.
+- CI: after pushing refreshed screenshots onto a PR, the Screenshots workflow dispatches Lint, Validate and HACS again on that branch (a `GITHUB_TOKEN` push starts no `pull_request` run); Lint can now be started manually.
 
 ## 1.11.0
 
