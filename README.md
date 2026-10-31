@@ -132,11 +132,17 @@ language: fr
 
 ## Screenshots
 
-| Light | Dark (only items needing attention) |
+| Light | Dark |
 |---|---|
 | ![card](screenshots/card.png) | ![card dark](screenshots/card-dark.png) |
 | ![mini card](screenshots/mini-card.png) | ![mini card dark](screenshots/mini-card-dark.png) |
 | ![mini card zoomed in](screenshots/mini-card-zoom.png) | ![mini card zoomed in dark](screenshots/mini-card-zoom-dark.png) |
+
+Only items needing attention (`only_problems: true`, containers list shown, both lists expanded):
+
+| Light | Dark |
+|---|---|
+| ![only items needing attention](screenshots/card-problems.png) | ![only items needing attention dark](screenshots/card-problems-dark.png) |
 
 Containers list:
 
@@ -152,7 +158,7 @@ Containers list:
 | Live gauges | ![gauges animating on a state change](screenshots/card-gauges.gif) | ![gauges animating on a state change dark](screenshots/card-gauges-dark.gif) |
 | Mini card detail button | ![mini card switching to the full card and back](screenshots/mini-card-zoom.gif) | ![mini card switching to the full card and back dark](screenshots/mini-card-zoom-dark.gif) |
 
-- `card-sections.gif` / `card-sections-dark.gif` — the stacks and containers lists fold and unfold on a click on their title, with the chevron rotating along.
+- `card-sections.gif` / `card-sections-dark.gif` — the stacks list folds and unfolds on a click on its title, with the chevron rotating along (the containers list, when shown, works the same way).
 - `card-gauges.gif` / `card-gauges-dark.gif` — the CPU and memory rings and labels follow every state change with a smooth transition.
 - `mini-card-zoom.gif` / `mini-card-zoom-dark.gif` — the detail button switches the mini card to the full card and back.
 
