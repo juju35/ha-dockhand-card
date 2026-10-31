@@ -91,8 +91,9 @@ const clickSel = (sel) =>
 // One looping GIF per animation. Each scenario replays `events` (a click on a card element, or a state
 // update) at fixed times; every animation is paused and stepped frame by frame from the event that started
 // it, so the GIF is identical whatever the machine's speed. `measure` is clicked once beforehand to size
-// the frame on the tallest state of the card.
-const gifs = [
+// the frame on the tallest state of the card. Every animation is recorded in both themes: each light GIF
+// gets a `-dark` twin with the exact same setup.
+const lightGifs = [
   {
     file: "card-sections",
     type: "dockhand-card",
@@ -144,6 +145,7 @@ const gifs = [
     ],
   },
 ];
+const gifs = [...lightGifs, ...lightGifs.map((g) => ({ ...g, file: `${g.file}-dark`, theme: "dark" }))];
 
 const recordGif = async (browser, g, fps = 15) => {
   const page = await openCard(browser, g);

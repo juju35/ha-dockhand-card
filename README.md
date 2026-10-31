@@ -146,13 +146,15 @@ Containers list:
 
 ### Animations
 
-| Folding sections | Live gauges | Mini card detail button |
+| Animation | Light | Dark |
 |---|---|---|
-| ![sections folding and unfolding](screenshots/card-sections.gif) | ![gauges animating on a state change](screenshots/card-gauges.gif) | ![mini card switching to the full card and back](screenshots/mini-card-zoom.gif) |
+| Folding sections | ![sections folding and unfolding](screenshots/card-sections.gif) | ![sections folding and unfolding dark](screenshots/card-sections-dark.gif) |
+| Live gauges | ![gauges animating on a state change](screenshots/card-gauges.gif) | ![gauges animating on a state change dark](screenshots/card-gauges-dark.gif) |
+| Mini card detail button | ![mini card switching to the full card and back](screenshots/mini-card-zoom.gif) | ![mini card switching to the full card and back dark](screenshots/mini-card-zoom-dark.gif) |
 
-- `card-sections.gif` — the stacks and containers lists fold and unfold on a click on their title, with the chevron rotating along.
-- `card-gauges.gif` — the CPU and memory rings and labels follow every state change with a smooth transition.
-- `mini-card-zoom.gif` — the detail button switches the mini card to the full card and back.
+- `card-sections.gif` / `card-sections-dark.gif` — the stacks and containers lists fold and unfold on a click on their title, with the chevron rotating along.
+- `card-gauges.gif` / `card-gauges-dark.gif` — the CPU and memory rings and labels follow every state change with a smooth transition.
+- `mini-card-zoom.gif` / `mini-card-zoom-dark.gif` — the detail button switches the mini card to the full card and back.
 
 ## How it works
 
