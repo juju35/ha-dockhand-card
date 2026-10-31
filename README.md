@@ -140,7 +140,9 @@ language: fr
 
 Containers list:
 
-![containers](screenshots/card-containers.png)
+| Light | Dark |
+|---|---|
+| ![containers](screenshots/card-containers.png) | ![containers dark](screenshots/card-containers-dark.png) |
 
 ### Animations
 

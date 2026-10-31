@@ -52,6 +52,7 @@ const shots = [
   { file: "card", type: "dockhand-card", theme: "light", width: 460, config: {} },
   { file: "card-dark", type: "dockhand-card", theme: "dark", width: 460, config: { show_containers: true, only_problems: true, expand_stacks: true, expand_containers: true } },
   { file: "card-containers", type: "dockhand-card", theme: "light", width: 460, config: { show_stats: false, show_counts: false, show_stacks: false, show_containers: true, expand_containers: true } },
+  { file: "card-containers-dark", type: "dockhand-card", theme: "dark", width: 460, config: { show_stats: false, show_counts: false, show_stacks: false, show_containers: true, expand_containers: true } },
   { file: "mini-card", type: "dockhand-mini-card", theme: "light", width: 380, config: {} },
   { file: "mini-card-dark", type: "dockhand-mini-card", theme: "dark", width: 380, config: {} },
   { file: "mini-card-zoom", type: "dockhand-mini-card", theme: "light", width: 460, config: {}, zoom: true },
