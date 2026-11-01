@@ -518,6 +518,14 @@ const BASE_STYLE = `
   .zoom:focus-visible { outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 1px; }
 `;
 
+// Appended last to every card style: with "reduce motion" set in the OS / browser, bars, gauge rings and
+// section chevrons jump to their new value instead of animating (!important beats every earlier rule).
+const MOTION_STYLE = `
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+`;
+
 // In-card confirmation popup, as in the other ha-* cards (ha-vacuum-card, ha-system-monitor-card): a backdrop
 // over the card with a small dialog at the top of the card, so it stays in view when the card is long.
 // window.confirm() is blocking and silently neutralised in some webviews; this popup is neither.
@@ -795,7 +803,7 @@ class DockhandBase extends HTMLElement {
   }
 
   _error(key) {
-    return `<style>${BASE_STYLE}${DIALOG_STYLE}</style><ha-card><div class="warning">${esc(
+    return `<style>${BASE_STYLE}${DIALOG_STYLE}${MOTION_STYLE}</style><ha-card><div class="warning">${esc(
       key === "unknown_env" ? `${this._t(key)}: ${this._config.environment}` : this._t(key)
     )}</div></ha-card>`;
   }
@@ -923,7 +931,7 @@ class DockhandCard extends DockhandBase {
     if (c.show_counts !== false) parts.push(this._counts(env));
     if (c.show_stacks !== false) parts.push(this._stacks(env));
     if (c.show_containers === true) parts.push(this._containers(env));
-    return `<style>${BASE_STYLE}${DIALOG_STYLE}${FULL_STYLE}</style>
+    return `<style>${BASE_STYLE}${DIALOG_STYLE}${FULL_STYLE}${MOTION_STYLE}</style>
       <ha-card>
         ${this._header(env)}
         <div class="content">${parts.filter(Boolean).join("")}</div>
@@ -1257,7 +1265,7 @@ class DockhandMiniCard extends DockhandCard {
           this._t("updates_lc")
         )}</span>`
       );
-    return `<style>${BASE_STYLE}${DIALOG_STYLE}${MINI_STYLE}</style>
+    return `<style>${BASE_STYLE}${DIALOG_STYLE}${MINI_STYLE}${MOTION_STYLE}</style>
       <ha-card>
         ${this._header(env)}
         <div class="content">

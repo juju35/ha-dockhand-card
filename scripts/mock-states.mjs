@@ -22,10 +22,10 @@ entity("sensor.host_utilisation_memoire", "env", "memory_usage", "38.2", {
   memory_total_bytes: 67150643200,
   unit_of_measurement: "%",
 });
-entity("sensor.host_conteneurs", "env", "containers", "12", {
-  running: 11, stopped: 1, paused: 0, restarting: 0, unhealthy: 1, pending_updates: 1, pending_updates_total: 2,
+entity("sensor.host_conteneurs", "env", "containers", "11", {
+  running: 10, stopped: 1, paused: 0, restarting: 0, unhealthy: 1, pending_updates: 1, pending_updates_total: 2,
 });
-entity("sensor.host_stacks", "env", "stacks", "8", { running: 7, partial: 0, stopped: 1 });
+entity("sensor.host_stacks", "env", "stacks", "7", { running: 6, partial: 0, stopped: 1 });
 entity("sensor.host_nombre_d_images", "env", "image_count", "13");
 entity("sensor.host_nombre_de_volumes", "env", "volume_count", "6");
 entity("sensor.host_nombre_de_reseaux", "env", "network_count", "10");
