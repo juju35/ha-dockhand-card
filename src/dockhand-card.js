@@ -949,8 +949,10 @@ const findEnv = (hass, config) => {
 const BASE_STYLE = `
   :host { --dh-orange: #f26b21; --dh-ok: var(--success-color, #43a047); --dh-warn: var(--warning-color, #ffa600);
           --dh-crit: var(--error-color, #db4437); --dh-idle: var(--disabled-text-color, #9e9e9e); }
-  /* Query container: the header, the mini card rows and the gauges adapt to the card width (Sections view). */
-  ha-card { overflow: hidden; container-type: inline-size; }
+  /* Query container: the header, the mini card rows and the gauges adapt to the card width (Sections view).
+     Inline-size containment drops the content width, so in a container without a definite width
+     (inline-block, auto grid column of layout-card / button-card) the card falls back to 300 px, not 0. */
+  ha-card { overflow: hidden; container-type: inline-size; contain-intrinsic-inline-size: 300px; }
   .icon { width: 18px; height: 18px; fill: currentColor; flex: none; }
   .muted { color: var(--secondary-text-color); }
   .clickable { cursor: pointer; }
@@ -964,9 +966,10 @@ const BASE_STYLE = `
   .header { display: flex; align-items: center; gap: 10px; padding: 12px 12px 8px; }
   .logo { height: 40px; width: 40px; object-fit: contain; flex: none; }
   a.logo-link { display: flex; flex: none; }
-  /* Narrow card: the title shrinks with an ellipsis but keeps a few characters; the chip gives way first. */
-  .titles { flex: 1 1 auto; min-width: 5ch; }
-  .header .chip { flex: 0 1 auto; min-width: 0; max-width: 50%; overflow: hidden; line-height: 16px; box-sizing: border-box; }
+  /* The title block takes what the chip and buttons leave (flex basis 0) and shrinks with an ellipsis down to
+     a few characters; only then does the chip cut its label. */
+  .titles { flex: 1 1 0; min-width: 5ch; }
+  .header .chip { flex: 0 1 auto; min-width: 0; overflow: hidden; line-height: 16px; box-sizing: border-box; }
   /* Unavailable / unknown: the dot stays grey, the text takes the primary text colour (grey text on a grey
      tint would stay under 4.5:1). */
   .header .chip.idle { color: var(--primary-text-color); }
@@ -1711,8 +1714,8 @@ class DockhandMiniCard extends DockhandCard {
     if (!ev.target?.closest?.(".zoom")) return;
     ev.stopPropagation();
     this._setZoom(!this._zoomed);
-    // Keyboard use (Enter / Space: no click count) keeps the focus on the button.
-    if (ev.detail === 0) this.shadowRoot.querySelector(".zoom")?.focus();
+    // Keyboard use (Enter / Space: no click count) keeps the focus on the button, without scrolling the view.
+    if (ev.detail === 0) this.shadowRoot.querySelector(".zoom")?.focus({ preventScroll: true });
   }
 
   _zoomButton() {
