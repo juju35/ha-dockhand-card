@@ -277,6 +277,388 @@ const STRINGS = {
     language: "Idioma",
     lang_auto: "Automático",
   },
+  sr: {
+    cpu: "CPU",
+    memory: "Меморија",
+    containers: "Контејнери",
+    stacks: "Стекови",
+    images: "Слике",
+    volumes: "Волумени",
+    networks: "Мреже",
+    updates: "Ажурирања",
+    container_lc: "контејнер",
+    containers_lc: "контејнера",
+    stacks_lc: "стекова",
+    images_lc: "слика",
+    updates_lc: "ажурирања",
+    running: "покренути",
+    cores: "језгара",
+    online: "На мрежи",
+    offline: "Ван мреже",
+    update_available: "Доступно ажурирање",
+    unhealthy: "Неисправно",
+    sync_error: "Грешка синхронизације",
+    restart: "Поново покрени",
+    stop: "Заустави",
+    cancel: "Откажи",
+    start_stop: "Покрени / заустави",
+    confirm_restart: "Поново покренути {name}?",
+    confirm_stop: "Зауставити {name}?",
+    all_ok: "Све је у реду",
+    no_env: "Није пронађено ниједно Dockhand окружење. Да ли је интеграција Dockhand инсталирана?",
+    unknown_env: "Dockhand окружење није пронађено",
+    no_registry: "Ова картица захтева Home Assistant 2024.8 или новији.",
+    state_running: "Покренуто",
+    state_exited: "Заустављено",
+    state_stopped: "Заустављено",
+    state_partial: "Делимично",
+    state_paused: "Паузирано",
+    state_restarting: "Поновно покретање",
+    state_created: "Креирано",
+    state_dead: "Мртво",
+    state_unavailable: "Недоступно",
+    state_unknown: "Непознато",
+    zoom_in: "Прикажи целу картицу",
+    zoom_out: "Назад на компактни приказ",
+    environment: "Dockhand окружење",
+    title: "Наслов (опционо, подразумевано је назив окружења)",
+    show_logo: "Прикажи Dockhand лого",
+    dockhand_url: "Dockhand URL који отвара лого (опционо, преузима се из интеграције)",
+    show_stats: "Прикажи CPU, меморију и контејнере",
+    show_counts: "Прикажи бројаче (стекови, слике…)",
+    show_stacks: "Прикажи стекове",
+    show_containers: "Прикажи контејнере",
+    show_controls: "Прикажи дугмад покрени / заустави / поново покрени",
+    only_problems: "Прикажи само стекове и контејнере којима је потребна пажња",
+    expand_stacks: "Листа стекова подразумевано отворена",
+    expand_containers: "Листа контејнера подразумевано отворена",
+    show_updates: "Прикажи ажурирања на чекању",
+    zoom: "Дугме за детаље",
+    zoom_helper: "Пребацује мини картицу на пуну картицу и назад",
+    language: "Језик",
+    lang_auto: "Аутоматски",
+  },
+  "sr-Latn": {
+    cpu: "CPU",
+    memory: "Memorija",
+    containers: "Kontejneri",
+    stacks: "Stekovi",
+    images: "Slike",
+    volumes: "Volumeni",
+    networks: "Mreže",
+    updates: "Ažuriranja",
+    container_lc: "kontejner",
+    containers_lc: "kontejnera",
+    stacks_lc: "stekova",
+    images_lc: "slika",
+    updates_lc: "ažuriranja",
+    running: "pokrenuti",
+    cores: "jezgara",
+    online: "Na mreži",
+    offline: "Van mreže",
+    update_available: "Dostupno ažuriranje",
+    unhealthy: "Neispravno",
+    sync_error: "Greška sinhronizacije",
+    restart: "Ponovo pokreni",
+    stop: "Zaustavi",
+    cancel: "Otkaži",
+    start_stop: "Pokreni / zaustavi",
+    confirm_restart: "Ponovo pokrenuti {name}?",
+    confirm_stop: "Zaustaviti {name}?",
+    all_ok: "Sve je u redu",
+    no_env: "Nije pronađeno nijedno Dockhand okruženje. Da li je integracija Dockhand instalirana?",
+    unknown_env: "Dockhand okruženje nije pronađeno",
+    no_registry: "Ova kartica zahteva Home Assistant 2024.8 ili noviji.",
+    state_running: "Pokrenuto",
+    state_exited: "Zaustavljeno",
+    state_stopped: "Zaustavljeno",
+    state_partial: "Delimično",
+    state_paused: "Pauzirano",
+    state_restarting: "Ponovno pokretanje",
+    state_created: "Kreirano",
+    state_dead: "Mrtvo",
+    state_unavailable: "Nedostupno",
+    state_unknown: "Nepoznato",
+    zoom_in: "Prikaži celu karticu",
+    zoom_out: "Nazad na kompaktni prikaz",
+    environment: "Dockhand okruženje",
+    title: "Naslov (opciono, podrazumevano je naziv okruženja)",
+    show_logo: "Prikaži Dockhand logo",
+    dockhand_url: "Dockhand URL koji otvara logo (opciono, preuzima se iz integracije)",
+    show_stats: "Prikaži CPU, memoriju i kontejnere",
+    show_counts: "Prikaži brojače (stekovi, slike…)",
+    show_stacks: "Prikaži stekove",
+    show_containers: "Prikaži kontejnere",
+    show_controls: "Prikaži dugmad pokreni / zaustavi / ponovo pokreni",
+    only_problems: "Prikaži samo stekove i kontejnere kojima je potrebna pažnja",
+    expand_stacks: "Lista stekova podrazumevano otvorena",
+    expand_containers: "Lista kontejnera podrazumevano otvorena",
+    show_updates: "Prikaži ažuriranja na čekanju",
+    zoom: "Dugme za detalje",
+    zoom_helper: "Prebacuje mini karticu na punu karticu i nazad",
+    language: "Jezik",
+    lang_auto: "Automatski",
+  },
+  it: {
+    cpu: "CPU",
+    memory: "Memoria",
+    containers: "Container",
+    stacks: "Stack",
+    images: "Immagini",
+    volumes: "Volumi",
+    networks: "Reti",
+    updates: "Aggiorn.",
+    container_lc: "container",
+    containers_lc: "container",
+    stacks_lc: "stack",
+    images_lc: "immagini",
+    updates_lc: "aggiornamenti",
+    running: "in esecuzione",
+    cores: "core",
+    online: "Online",
+    offline: "Offline",
+    update_available: "Aggiornamento disponibile",
+    unhealthy: "Non integro",
+    sync_error: "Errore sincro",
+    restart: "Riavvia",
+    stop: "Arresta",
+    cancel: "Annulla",
+    start_stop: "Avvia / arresta",
+    confirm_restart: "Riavviare {name}?",
+    confirm_stop: "Arrestare {name}?",
+    all_ok: "Nulla da segnalare",
+    no_env: "Nessun ambiente Dockhand trovato. L'integrazione Dockhand è installata?",
+    unknown_env: "Ambiente Dockhand non trovato",
+    no_registry: "Questa scheda richiede Home Assistant 2024.8 o successivo.",
+    state_running: "In esecuzione",
+    state_exited: "Arrestato",
+    state_stopped: "Arrestato",
+    state_partial: "Parziale",
+    state_paused: "In pausa",
+    state_restarting: "Riavvio in corso",
+    state_created: "Creato",
+    state_dead: "Morto",
+    state_unavailable: "Non disponibile",
+    state_unknown: "Sconosciuto",
+    zoom_in: "Mostra la scheda completa",
+    zoom_out: "Torna alla vista compatta",
+    environment: "Ambiente Dockhand",
+    title: "Titolo (facoltativo, predefinito: nome dell'ambiente)",
+    show_logo: "Mostra il logo Dockhand",
+    dockhand_url: "URL di Dockhand aperto dal logo (facoltativo, rilevato dall'integrazione)",
+    show_stats: "Mostra CPU, memoria e container",
+    show_counts: "Mostra i contatori (stack, immagini…)",
+    show_stacks: "Mostra gli stack",
+    show_containers: "Mostra i container",
+    show_controls: "Mostra i pulsanti avvia / arresta / riavvia",
+    only_problems: "Elenca solo gli stack e i container che richiedono attenzione",
+    expand_stacks: "Elenco degli stack espanso per impostazione predefinita",
+    expand_containers: "Elenco dei container espanso per impostazione predefinita",
+    show_updates: "Mostra gli aggiornamenti in sospeso",
+    zoom: "Pulsante dettagli",
+    zoom_helper: "Passa dalla mini scheda alla scheda completa e viceversa",
+    language: "Lingua",
+    lang_auto: "Automatica",
+  },
+  nl: {
+    cpu: "CPU",
+    memory: "Geheugen",
+    containers: "Containers",
+    stacks: "Stacks",
+    images: "Images",
+    volumes: "Volumes",
+    networks: "Netwerken",
+    updates: "Updates",
+    container_lc: "container",
+    containers_lc: "containers",
+    stacks_lc: "stacks",
+    images_lc: "images",
+    updates_lc: "updates",
+    running: "actief",
+    cores: "cores",
+    online: "Online",
+    offline: "Offline",
+    update_available: "Update beschikbaar",
+    unhealthy: "Ongezond",
+    sync_error: "Syncfout",
+    restart: "Herstarten",
+    stop: "Stoppen",
+    cancel: "Annuleren",
+    start_stop: "Starten / stoppen",
+    confirm_restart: "{name} herstarten?",
+    confirm_stop: "{name} stoppen?",
+    all_ok: "Niets te melden",
+    no_env: "Geen Dockhand-omgeving gevonden. Is de Dockhand-integratie geïnstalleerd?",
+    unknown_env: "Dockhand-omgeving niet gevonden",
+    no_registry: "Deze kaart vereist Home Assistant 2024.8 of nieuwer.",
+    state_running: "Actief",
+    state_exited: "Gestopt",
+    state_stopped: "Gestopt",
+    state_partial: "Gedeeltelijk",
+    state_paused: "Gepauzeerd",
+    state_restarting: "Bezig met herstarten",
+    state_created: "Aangemaakt",
+    state_dead: "Dood",
+    state_unavailable: "Niet beschikbaar",
+    state_unknown: "Onbekend",
+    zoom_in: "Volledige kaart tonen",
+    zoom_out: "Terug naar de compacte weergave",
+    environment: "Dockhand-omgeving",
+    title: "Titel (optioneel, standaard de naam van de omgeving)",
+    show_logo: "Dockhand-logo tonen",
+    dockhand_url: "Dockhand-URL die het logo opent (optioneel, gedetecteerd via de integratie)",
+    show_stats: "CPU, geheugen en containers tonen",
+    show_counts: "Tellers tonen (stacks, images…)",
+    show_stacks: "Stacks tonen",
+    show_containers: "Containers tonen",
+    show_controls: "Knoppen starten / stoppen / herstarten tonen",
+    only_problems: "Alleen stacks en containers tonen die aandacht nodig hebben",
+    expand_stacks: "Lijst met stacks standaard uitgevouwen",
+    expand_containers: "Lijst met containers standaard uitgevouwen",
+    show_updates: "Openstaande updates tonen",
+    zoom: "Detailknop",
+    zoom_helper: "Schakelt de minikaart om naar de volledige kaart en terug",
+    language: "Taal",
+    lang_auto: "Automatisch",
+  },
+  pt: {
+    cpu: "CPU",
+    memory: "Memória",
+    containers: "Contentores",
+    stacks: "Stacks",
+    images: "Imagens",
+    volumes: "Volumes",
+    networks: "Redes",
+    updates: "Atualiz.",
+    container_lc: "contentor",
+    containers_lc: "contentores",
+    stacks_lc: "stacks",
+    images_lc: "imagens",
+    updates_lc: "atualizações",
+    running: "em execução",
+    cores: "núcleos",
+    online: "Online",
+    offline: "Offline",
+    update_available: "Atualização disponível",
+    unhealthy: "Em mau estado",
+    sync_error: "Erro de sincr.",
+    restart: "Reiniciar",
+    stop: "Parar",
+    cancel: "Cancelar",
+    start_stop: "Iniciar / parar",
+    confirm_restart: "Reiniciar {name}?",
+    confirm_stop: "Parar {name}?",
+    all_ok: "Nada a assinalar",
+    no_env: "Nenhum ambiente Dockhand encontrado. A integração Dockhand está instalada?",
+    unknown_env: "Ambiente Dockhand não encontrado",
+    no_registry: "Este cartão requer o Home Assistant 2024.8 ou posterior.",
+    state_running: "Em execução",
+    state_exited: "Parado",
+    state_stopped: "Parado",
+    state_partial: "Parcial",
+    state_paused: "Em pausa",
+    state_restarting: "A reiniciar",
+    state_created: "Criado",
+    state_dead: "Morto",
+    state_unavailable: "Indisponível",
+    state_unknown: "Desconhecido",
+    zoom_in: "Mostrar o cartão completo",
+    zoom_out: "Voltar à vista compacta",
+    environment: "Ambiente Dockhand",
+    title: "Título (opcional, por predefinição o nome do ambiente)",
+    show_logo: "Mostrar o logótipo Dockhand",
+    dockhand_url: "URL do Dockhand aberto pelo logótipo (opcional, detetado a partir da integração)",
+    show_stats: "Mostrar CPU, memória e contentores",
+    show_counts: "Mostrar contadores (stacks, imagens…)",
+    show_stacks: "Mostrar os stacks",
+    show_containers: "Mostrar os contentores",
+    show_controls: "Mostrar os botões iniciar / parar / reiniciar",
+    only_problems: "Listar apenas os stacks e os contentores que requerem atenção",
+    expand_stacks: "Lista de stacks expandida por predefinição",
+    expand_containers: "Lista de contentores expandida por predefinição",
+    show_updates: "Mostrar as atualizações pendentes",
+    zoom: "Botão de detalhe",
+    zoom_helper: "Alterna entre o mini cartão e o cartão completo",
+    language: "Idioma",
+    lang_auto: "Automático",
+  },
+  pl: {
+    cpu: "CPU",
+    memory: "Pamięć",
+    containers: "Kontenery",
+    stacks: "Stosy",
+    images: "Obrazy",
+    volumes: "Woluminy",
+    networks: "Sieci",
+    updates: "Aktualiz.",
+    container_lc: "kontener",
+    containers_lc: "kontenerów",
+    stacks_lc: "stosów",
+    images_lc: "obrazów",
+    updates_lc: "aktualizacji",
+    // Plural forms picked by Intl.PluralRules (one / few / many); the key without suffix is the fallback.
+    containers_lc_one: "kontener",
+    containers_lc_few: "kontenery",
+    containers_lc_many: "kontenerów",
+    stacks_lc_one: "stos",
+    stacks_lc_few: "stosy",
+    stacks_lc_many: "stosów",
+    images_lc_one: "obraz",
+    images_lc_few: "obrazy",
+    images_lc_many: "obrazów",
+    updates_lc_one: "aktualizacja",
+    updates_lc_few: "aktualizacje",
+    updates_lc_many: "aktualizacji",
+    running: "uruchomione",
+    cores: "rdzeni",
+    cores_one: "rdzeń",
+    cores_few: "rdzenie",
+    cores_many: "rdzeni",
+    online: "Online",
+    offline: "Offline",
+    update_available: "Dostępna aktualizacja",
+    unhealthy: "Niesprawny",
+    sync_error: "Błąd synchr.",
+    restart: "Uruchom ponownie",
+    stop: "Zatrzymaj",
+    cancel: "Anuluj",
+    start_stop: "Uruchom / zatrzymaj",
+    confirm_restart: "Uruchomić ponownie {name}?",
+    confirm_stop: "Zatrzymać {name}?",
+    all_ok: "Wszystko w porządku",
+    no_env: "Nie znaleziono środowiska Dockhand. Czy integracja Dockhand jest zainstalowana?",
+    unknown_env: "Nie znaleziono środowiska Dockhand",
+    no_registry: "Ta karta wymaga Home Assistant 2024.8 lub nowszego.",
+    state_running: "Uruchomiony",
+    state_exited: "Zatrzymany",
+    state_stopped: "Zatrzymany",
+    state_partial: "Częściowy",
+    state_paused: "Wstrzymany",
+    state_restarting: "Ponowne uruchamianie",
+    state_created: "Utworzony",
+    state_dead: "Martwy",
+    state_unavailable: "Niedostępny",
+    state_unknown: "Nieznany",
+    zoom_in: "Pokaż pełną kartę",
+    zoom_out: "Wróć do widoku kompaktowego",
+    environment: "Środowisko Dockhand",
+    title: "Tytuł (opcjonalnie, domyślnie nazwa środowiska)",
+    show_logo: "Pokaż logo Dockhand",
+    dockhand_url: "URL Dockhand otwierany przez logo (opcjonalnie, wykrywany z integracji)",
+    show_stats: "Pokaż CPU, pamięć i kontenery",
+    show_counts: "Pokaż liczniki (stosy, obrazy…)",
+    show_stacks: "Pokaż stosy",
+    show_containers: "Pokaż kontenery",
+    show_controls: "Pokaż przyciski uruchom / zatrzymaj / uruchom ponownie",
+    only_problems: "Pokaż tylko stosy i kontenery wymagające uwagi",
+    expand_stacks: "Lista stosów domyślnie rozwinięta",
+    expand_containers: "Lista kontenerów domyślnie rozwinięta",
+    show_updates: "Pokaż oczekujące aktualizacje",
+    zoom: "Przycisk szczegółów",
+    zoom_helper: "Przełącza mini kartę na pełną kartę i z powrotem",
+    language: "Język",
+    lang_auto: "Automatycznie",
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -293,6 +675,19 @@ const lang = (hass, config) => {
 
 const t = (hass, config, key, vars = {}) =>
   String(STRINGS[lang(hass, config)][key] ?? STRINGS.en[key] ?? key).replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+
+// Counted noun ("4 cores"): the language's Intl.PluralRules form (key_one, key_few, key_many…) when the
+// dictionary has it, else `oneKey` for 1 when given, else the key itself.
+const tn = (hass, config, key, n, oneKey) => {
+  const code = lang(hass, config);
+  const v = Number(n);
+  if (Number.isFinite(v)) {
+    const form = STRINGS[code][`${key}_${new Intl.PluralRules(code).select(v)}`];
+    if (form) return form;
+    if (v === 1 && oneKey) return t(hass, config, oneKey);
+  }
+  return t(hass, config, key);
+};
 
 const num = (s) => {
   if (!s) return null;
@@ -518,6 +913,14 @@ const BASE_STYLE = `
   .zoom:focus-visible { outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 1px; }
 `;
 
+// Appended last to every card style: with "reduce motion" set in the OS / browser, bars, gauge rings and
+// section chevrons jump to their new value instead of animating (!important beats every earlier rule).
+const MOTION_STYLE = `
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+`;
+
 // In-card confirmation popup, as in the other ha-* cards (ha-vacuum-card, ha-system-monitor-card): a backdrop
 // over the card with a small dialog at the top of the card, so it stays in view when the card is long.
 // window.confirm() is blocking and silently neutralised in some webviews; this popup is neither.
@@ -620,6 +1023,10 @@ class DockhandBase extends HTMLElement {
 
   _t(key, vars) {
     return t(this._hass, this._config, key, vars);
+  }
+
+  _tn(key, n, oneKey) {
+    return tn(this._hass, this._config, key, n, oneKey);
   }
 
   _s(id) {
@@ -795,7 +1202,7 @@ class DockhandBase extends HTMLElement {
   }
 
   _error(key) {
-    return `<style>${BASE_STYLE}${DIALOG_STYLE}</style><ha-card><div class="warning">${esc(
+    return `<style>${BASE_STYLE}${DIALOG_STYLE}${MOTION_STYLE}</style><ha-card><div class="warning">${esc(
       key === "unknown_env" ? `${this._t(key)}: ${this._config.environment}` : this._t(key)
     )}</div></ha-card>`;
   }
@@ -868,7 +1275,8 @@ const FULL_STYLE = `
   .item .title span:first-child { overflow: hidden; text-overflow: ellipsis; }
   .item .detail { font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tag { font-size: 11px; padding: 1px 6px; border-radius: 6px; background: var(--secondary-background-color, rgba(127,127,127,.12));
-         color: var(--secondary-text-color); flex: none; display: inline-flex; align-items: center; gap: 3px; }
+         color: var(--secondary-text-color); flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+         display: inline-flex; align-items: center; gap: 3px; }
   .tag .icon { width: 12px; height: 12px; }
   .tag.alert { background: color-mix(in srgb, var(--c) 15%, transparent); color: var(--c); }
   .badge-update { color: var(--dh-orange); }
@@ -923,7 +1331,7 @@ class DockhandCard extends DockhandBase {
     if (c.show_counts !== false) parts.push(this._counts(env));
     if (c.show_stacks !== false) parts.push(this._stacks(env));
     if (c.show_containers === true) parts.push(this._containers(env));
-    return `<style>${BASE_STYLE}${DIALOG_STYLE}${FULL_STYLE}</style>
+    return `<style>${BASE_STYLE}${DIALOG_STYLE}${FULL_STYLE}${MOTION_STYLE}</style>
       <ha-card>
         ${this._header(env)}
         <div class="content">${parts.filter(Boolean).join("")}</div>
@@ -952,7 +1360,7 @@ class DockhandCard extends DockhandBase {
     return `<div class="gauges">
       ${this._gauge(
         env.entities.cpu_usage,
-        cores ? `${this._t("cpu")}<small>${esc(cores)} ${this._t("cores")}</small>` : this._t("cpu"),
+        cores ? `${this._t("cpu")}<small>${esc(cores)} ${esc(this._tn("cores", cores))}</small>` : this._t("cpu"),
         ICONS.cpu,
         cpu,
         cpu === null ? "—" : `${cpu < 10 ? cpu.toFixed(1) : Math.round(cpu)}%`,
@@ -1046,7 +1454,7 @@ class DockhandCard extends DockhandBase {
       const isGit = /^Git/.test(st.type || "");
       const detail = [
         status ? this._stateLabel(status.state) : null,
-        count !== null ? `${count} ${this._t(count === 1 ? "container_lc" : "containers_lc")}` : null,
+        count !== null ? `${count} ${this._tn("containers_lc", count, "container_lc")}` : null,
       ].filter(Boolean);
       return {
         problem,
@@ -1247,17 +1655,17 @@ class DockhandMiniCard extends DockhandCard {
     ];
     const foot = [];
     const stacks = this._s(e.stacks);
-    if (stacks) foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${esc(e.stacks)}" data-entity="${esc(e.stacks)}">${svgIcon(ICONS.stack)}${esc(countText(stacks))} ${esc(this._t("stacks_lc"))}</span>`);
+    if (stacks) foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${esc(e.stacks)}" data-entity="${esc(e.stacks)}">${svgIcon(ICONS.stack)}${esc(countText(stacks))} ${esc(this._tn("stacks_lc", stacks.state))}</span>`);
     const images = this._s(e.image_count);
     if (images)
-      foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${esc(e.image_count)}" data-entity="${esc(e.image_count)}">${svgIcon(ICONS.image)}${esc(countText(images))} ${esc(this._t("images_lc"))}</span>`);
+      foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${esc(e.image_count)}" data-entity="${esc(e.image_count)}">${svgIcon(ICONS.image)}${esc(countText(images))} ${esc(this._tn("images_lc", images.state))}</span>`);
     if (this._config.show_updates !== false && cs.entity)
       foot.push(
         `<span class="clickable ${cs.updates > 0 ? "upd" : ""}" role="button" tabindex="0" data-key="${esc(cs.entity)}" data-entity="${esc(cs.entity)}">${svgIcon(ICONS.update)}${esc(cs.updates ?? "—")} ${esc(
-          this._t("updates_lc")
+          this._tn("updates_lc", cs.updates)
         )}</span>`
       );
-    return `<style>${BASE_STYLE}${DIALOG_STYLE}${MINI_STYLE}</style>
+    return `<style>${BASE_STYLE}${DIALOG_STYLE}${MINI_STYLE}${MOTION_STYLE}</style>
       <ha-card>
         ${this._header(env)}
         <div class="content">
@@ -1310,6 +1718,12 @@ class DockhandEditorBase extends HTMLElement {
               { value: "fr", label: "Français" },
               { value: "de", label: "Deutsch" },
               { value: "es", label: "Español" },
+              { value: "sr", label: "Српски" },
+              { value: "sr-Latn", label: "Srpski (latinica)" },
+              { value: "it", label: "Italiano" },
+              { value: "nl", label: "Nederlands" },
+              { value: "pt", label: "Português (Portugal)" },
+              { value: "pl", label: "Polski" },
             ],
           },
         },

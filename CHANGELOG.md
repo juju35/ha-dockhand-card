@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.11.5 - 2026-11-01
+
+### Added
+- Added Italian, Dutch, European Portuguese and Polish translations: `it`, `nl`, `pt` and `pl`, all selectable in the editor and picked automatically from the Home Assistant language (`pt-BR` falls back to European Portuguese).
+
+### Fixed
+- A long Git sync error tag no longer hides the stack name on a narrow card: the tag shrinks with an ellipsis (it helps German too).
+- Polish counted nouns use the right plural form (1 rdzeń, 2 rdzenie, 5 rdzeni; same for containers, stacks, images and updates).
+
+## 1.11.4 - 2026-11-01
+
+### Added
+- Added Serbian (Cyrillic and Latin) translations: `sr` and `sr-Latn`, both selectable in the editor; `sr-Latn` is picked automatically when Home Assistant is set to Serbian (Latin).
+
+## 1.11.3
+
+### Fixes
+- With "reduce motion" enabled in the system or browser, the bars, gauge rings and section chevrons no longer animate; they jump straight to their new value.
+
+### Maintenance
+- Screenshots: the mock environment counters now match the stacks and containers listed (7 stacks, 11 containers), so tiles and sections show the same totals.
+- CI: a single Biome version (2.6.3) in pre-commit, `biome.json` and Lint; the Lint job reads it from `.pre-commit-config.yaml`.
+
 ## 1.11.2
 
 ### Fixes
