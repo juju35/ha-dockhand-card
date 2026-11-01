@@ -9,6 +9,9 @@
 - An unavailable or unknown "online" sensor now shows "Unavailable" / "Unknown" in grey instead of a red "Offline".
 - The restart button of an unavailable stack or container is disabled.
 - Screen readers announce the question of the confirmation popup ("Restart auth?").
+- The header status chip shows its whole label ("Online", "Unavailable"…) at usual card widths (245 px and up) instead of being cut to "Onl…" while the title had room to spare.
+- Using the mini card detail button from the keyboard no longer scrolls the dashboard to the card.
+- In a container without a set width (an inline-block or `auto` grid column of layout-card / button-card), the cards no longer collapse to a few pixels: they fall back to 300 px.
 
 ## 1.11.5 - 2026-11-01
 
