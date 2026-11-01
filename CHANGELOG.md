@@ -11,7 +11,7 @@
 - Screen readers announce the question of the confirmation popup ("Restart auth?").
 - The header status chip shows its whole label ("Online", "Unavailable"…) at usual card widths (245 px and up) instead of being cut to "Onl…" while the title had room to spare.
 - Using the mini card detail button from the keyboard no longer scrolls the dashboard to the card.
-- In a container without a set width (an inline-block or `auto` grid column of layout-card / button-card), the cards no longer collapse to a few pixels: they fall back to 300 px.
+- In a container without a set width (an inline-block or `auto` grid column of layout-card / button-card), the cards no longer collapse to a few pixels: they take a natural width of 300 px, and still shrink to their column in a `1fr` grid (layout-card, grid card) or a flex row, without overflowing it.
 
 ## 1.11.5 - 2026-11-01
 
