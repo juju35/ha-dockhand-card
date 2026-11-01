@@ -5,6 +5,10 @@
 ### Added
 - Added Italian, Dutch, European Portuguese and Polish translations: `it`, `nl`, `pt` and `pl`, all selectable in the editor and picked automatically from the Home Assistant language (`pt-BR` falls back to European Portuguese).
 
+### Fixed
+- A long Git sync error tag no longer hides the stack name on a narrow card: the tag shrinks with an ellipsis (it helps German too).
+- Polish counted nouns use the right plural form (1 rdzeń, 2 rdzenie, 5 rdzeni; same for containers, stacks, images and updates).
+
 ## 1.11.4 - 2026-11-01
 
 ### Added

@@ -419,7 +419,7 @@ const STRINGS = {
     offline: "Offline",
     update_available: "Aggiornamento disponibile",
     unhealthy: "Non integro",
-    sync_error: "Errore di sincronizzazione",
+    sync_error: "Errore sincro",
     restart: "Riavvia",
     stop: "Arresta",
     cancel: "Annulla",
@@ -443,7 +443,7 @@ const STRINGS = {
     zoom_in: "Mostra la scheda completa",
     zoom_out: "Torna alla vista compatta",
     environment: "Ambiente Dockhand",
-    title: "Titolo (facoltativo, per impostazione predefinita il nome dell'ambiente)",
+    title: "Titolo (facoltativo, predefinito: nome dell'ambiente)",
     show_logo: "Mostra il logo Dockhand",
     dockhand_url: "URL di Dockhand aperto dal logo (facoltativo, rilevato dall'integrazione)",
     show_stats: "Mostra CPU, memoria e container",
@@ -480,7 +480,7 @@ const STRINGS = {
     offline: "Offline",
     update_available: "Update beschikbaar",
     unhealthy: "Ongezond",
-    sync_error: "Synchronisatiefout",
+    sync_error: "Syncfout",
     restart: "Herstarten",
     stop: "Stoppen",
     cancel: "Annuleren",
@@ -496,7 +496,7 @@ const STRINGS = {
     state_stopped: "Gestopt",
     state_partial: "Gedeeltelijk",
     state_paused: "Gepauzeerd",
-    state_restarting: "Herstarten",
+    state_restarting: "Bezig met herstarten",
     state_created: "Aangemaakt",
     state_dead: "Dood",
     state_unavailable: "Niet beschikbaar",
@@ -541,7 +541,7 @@ const STRINGS = {
     offline: "Offline",
     update_available: "Atualização disponível",
     unhealthy: "Em mau estado",
-    sync_error: "Erro de sincronização",
+    sync_error: "Erro de sincr.",
     restart: "Reiniciar",
     stop: "Parar",
     cancel: "Cancelar",
@@ -570,10 +570,10 @@ const STRINGS = {
     dockhand_url: "URL do Dockhand aberto pelo logótipo (opcional, detetado a partir da integração)",
     show_stats: "Mostrar CPU, memória e contentores",
     show_counts: "Mostrar contadores (stacks, imagens…)",
-    show_stacks: "Mostrar as stacks",
+    show_stacks: "Mostrar os stacks",
     show_containers: "Mostrar os contentores",
     show_controls: "Mostrar os botões iniciar / parar / reiniciar",
-    only_problems: "Listar apenas as stacks e os contentores que requerem atenção",
+    only_problems: "Listar apenas os stacks e os contentores que requerem atenção",
     expand_stacks: "Lista de stacks expandida por predefinição",
     expand_containers: "Lista de contentores expandida por predefinição",
     show_updates: "Mostrar as atualizações pendentes",
@@ -596,27 +596,43 @@ const STRINGS = {
     stacks_lc: "stosów",
     images_lc: "obrazów",
     updates_lc: "aktualizacji",
+    // Plural forms picked by Intl.PluralRules (one / few / many); the key without suffix is the fallback.
+    containers_lc_one: "kontener",
+    containers_lc_few: "kontenery",
+    containers_lc_many: "kontenerów",
+    stacks_lc_one: "stos",
+    stacks_lc_few: "stosy",
+    stacks_lc_many: "stosów",
+    images_lc_one: "obraz",
+    images_lc_few: "obrazy",
+    images_lc_many: "obrazów",
+    updates_lc_one: "aktualizacja",
+    updates_lc_few: "aktualizacje",
+    updates_lc_many: "aktualizacji",
     running: "uruchomione",
     cores: "rdzeni",
+    cores_one: "rdzeń",
+    cores_few: "rdzenie",
+    cores_many: "rdzeni",
     online: "Online",
     offline: "Offline",
     update_available: "Dostępna aktualizacja",
     unhealthy: "Niesprawny",
-    sync_error: "Błąd synchronizacji",
+    sync_error: "Błąd synchr.",
     restart: "Uruchom ponownie",
     stop: "Zatrzymaj",
     cancel: "Anuluj",
     start_stop: "Uruchom / zatrzymaj",
     confirm_restart: "Uruchomić ponownie {name}?",
     confirm_stop: "Zatrzymać {name}?",
-    all_ok: "Brak zgłoszeń",
+    all_ok: "Wszystko w porządku",
     no_env: "Nie znaleziono środowiska Dockhand. Czy integracja Dockhand jest zainstalowana?",
     unknown_env: "Nie znaleziono środowiska Dockhand",
     no_registry: "Ta karta wymaga Home Assistant 2024.8 lub nowszego.",
     state_running: "Uruchomiony",
     state_exited: "Zatrzymany",
     state_stopped: "Zatrzymany",
-    state_partial: "Częściowo",
+    state_partial: "Częściowy",
     state_paused: "Wstrzymany",
     state_restarting: "Ponowne uruchamianie",
     state_created: "Utworzony",
@@ -659,6 +675,19 @@ const lang = (hass, config) => {
 
 const t = (hass, config, key, vars = {}) =>
   String(STRINGS[lang(hass, config)][key] ?? STRINGS.en[key] ?? key).replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+
+// Counted noun ("4 cores"): the language's Intl.PluralRules form (key_one, key_few, key_many…) when the
+// dictionary has it, else `oneKey` for 1 when given, else the key itself.
+const tn = (hass, config, key, n, oneKey) => {
+  const code = lang(hass, config);
+  const v = Number(n);
+  if (Number.isFinite(v)) {
+    const form = STRINGS[code][`${key}_${new Intl.PluralRules(code).select(v)}`];
+    if (form) return form;
+    if (v === 1 && oneKey) return t(hass, config, oneKey);
+  }
+  return t(hass, config, key);
+};
 
 const num = (s) => {
   if (!s) return null;
@@ -996,6 +1025,10 @@ class DockhandBase extends HTMLElement {
     return t(this._hass, this._config, key, vars);
   }
 
+  _tn(key, n, oneKey) {
+    return tn(this._hass, this._config, key, n, oneKey);
+  }
+
   _s(id) {
     return id ? this._hass.states[id] : undefined;
   }
@@ -1242,7 +1275,8 @@ const FULL_STYLE = `
   .item .title span:first-child { overflow: hidden; text-overflow: ellipsis; }
   .item .detail { font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tag { font-size: 11px; padding: 1px 6px; border-radius: 6px; background: var(--secondary-background-color, rgba(127,127,127,.12));
-         color: var(--secondary-text-color); flex: none; display: inline-flex; align-items: center; gap: 3px; }
+         color: var(--secondary-text-color); flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+         display: inline-flex; align-items: center; gap: 3px; }
   .tag .icon { width: 12px; height: 12px; }
   .tag.alert { background: color-mix(in srgb, var(--c) 15%, transparent); color: var(--c); }
   .badge-update { color: var(--dh-orange); }
@@ -1326,7 +1360,7 @@ class DockhandCard extends DockhandBase {
     return `<div class="gauges">
       ${this._gauge(
         env.entities.cpu_usage,
-        cores ? `${this._t("cpu")}<small>${esc(cores)} ${this._t("cores")}</small>` : this._t("cpu"),
+        cores ? `${this._t("cpu")}<small>${esc(cores)} ${esc(this._tn("cores", cores))}</small>` : this._t("cpu"),
         ICONS.cpu,
         cpu,
         cpu === null ? "—" : `${cpu < 10 ? cpu.toFixed(1) : Math.round(cpu)}%`,
@@ -1420,7 +1454,7 @@ class DockhandCard extends DockhandBase {
       const isGit = /^Git/.test(st.type || "");
       const detail = [
         status ? this._stateLabel(status.state) : null,
-        count !== null ? `${count} ${this._t(count === 1 ? "container_lc" : "containers_lc")}` : null,
+        count !== null ? `${count} ${this._tn("containers_lc", count, "container_lc")}` : null,
       ].filter(Boolean);
       return {
         problem,
@@ -1621,14 +1655,14 @@ class DockhandMiniCard extends DockhandCard {
     ];
     const foot = [];
     const stacks = this._s(e.stacks);
-    if (stacks) foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${esc(e.stacks)}" data-entity="${esc(e.stacks)}">${svgIcon(ICONS.stack)}${esc(countText(stacks))} ${esc(this._t("stacks_lc"))}</span>`);
+    if (stacks) foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${esc(e.stacks)}" data-entity="${esc(e.stacks)}">${svgIcon(ICONS.stack)}${esc(countText(stacks))} ${esc(this._tn("stacks_lc", stacks.state))}</span>`);
     const images = this._s(e.image_count);
     if (images)
-      foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${esc(e.image_count)}" data-entity="${esc(e.image_count)}">${svgIcon(ICONS.image)}${esc(countText(images))} ${esc(this._t("images_lc"))}</span>`);
+      foot.push(`<span class="clickable" role="button" tabindex="0" data-key="${esc(e.image_count)}" data-entity="${esc(e.image_count)}">${svgIcon(ICONS.image)}${esc(countText(images))} ${esc(this._tn("images_lc", images.state))}</span>`);
     if (this._config.show_updates !== false && cs.entity)
       foot.push(
         `<span class="clickable ${cs.updates > 0 ? "upd" : ""}" role="button" tabindex="0" data-key="${esc(cs.entity)}" data-entity="${esc(cs.entity)}">${svgIcon(ICONS.update)}${esc(cs.updates ?? "—")} ${esc(
-          this._t("updates_lc")
+          this._tn("updates_lc", cs.updates)
         )}</span>`
       );
     return `<style>${BASE_STYLE}${DIALOG_STYLE}${MINI_STYLE}${MOTION_STYLE}</style>
@@ -1688,7 +1722,7 @@ class DockhandEditorBase extends HTMLElement {
               { value: "sr-Latn", label: "Srpski (latinica)" },
               { value: "it", label: "Italiano" },
               { value: "nl", label: "Nederlands" },
-              { value: "pt", label: "Português" },
+              { value: "pt", label: "Português (Portugal)" },
               { value: "pl", label: "Polski" },
             ],
           },
