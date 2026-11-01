@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.11.3
+
+### Fixes
+- With "reduce motion" enabled in the system or browser, the bars, gauge rings and section chevrons no longer animate; they jump straight to their new value.
+
+### Maintenance
+- Screenshots: the mock environment counters now match the stacks and containers listed (7 stacks, 11 containers), so tiles and sections show the same totals.
+- CI: a single Biome version (2.6.3) in pre-commit, `biome.json` and Lint; the Lint job reads it from `.pre-commit-config.yaml`.
+
 ## 1.11.2
 
 ### Fixes
