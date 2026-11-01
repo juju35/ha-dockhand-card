@@ -128,7 +128,7 @@ language: fr
 | `expand_containers` | full | `false` | Containers list expanded when the card loads (click the section title to fold / unfold) |
 | `show_updates` | mini | `true` | Pending updates in the footer |
 | `zoom` | mini | `true` | Detail button at the top right: switches to the full card and back (`false` removes it) |
-| `language` | both | Auto | Force language: `en`, `fr`, `de`, `es`, `sr` or `sr-Latn` (auto-detects from HA settings) |
+| `language` | both | Auto | Force language: `en`, `fr`, `de`, `es`, `sr`, `sr-Latn`, `it`, `nl`, `pt` or `pl` (auto-detects from HA settings) |
 
 ## Screenshots
 
@@ -209,6 +209,10 @@ The cards auto-detect the language from your Home Assistant settings. Currently 
 | Español | `es` |
 | Српски | `sr` |
 | Srpski (latinica) | `sr-Latn` |
+| Italiano | `it` |
+| Nederlands | `nl` |
+| Português (European) | `pt` |
+| Polski | `pl` |
 
 Contributions for additional languages are welcome!
 
