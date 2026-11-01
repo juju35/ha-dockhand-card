@@ -1,6 +1,6 @@
 {
   "name": "ha-dockhand-card",
-  "version": "1.11.3",
+  "version": "1.11.4",
   "description": "Lovelace cards for Home Assistant to monitor and control Docker environments managed by Dockhand.",
   "private": true,
   "type": "module",

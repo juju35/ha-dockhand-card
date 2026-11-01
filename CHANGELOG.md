@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.11.4 - 2026-11-01
+
+### Added
+- Added Serbian (Cyrillic and Latin) translations: `sr` and `sr-Latn`, both selectable in the editor; `sr-Latn` is picked automatically when Home Assistant is set to Serbian (Latin).
+
 ## 1.11.3
 
 ### Fixes
