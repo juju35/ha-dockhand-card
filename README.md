@@ -31,7 +31,7 @@ The cards are built on top of the [Dockhand integration](https://github.com/raet
 - Click any value to open its Home Assistant history (more-info dialog)
 - Detail button at the top right of the mini card: it switches to the full card and back; a click anywhere outside the card brings the compact view back
 - Visual editor in the dashboard UI for both cards (no YAML needed)
-- Light and dark mode, English, French, German, Spanish and Serbian (Cyrillic and Latin)
+- Light and dark mode; English, French, German, Spanish, Serbian (Cyrillic and Latin), Italian, Dutch, European Portuguese and Polish
 - Single file, no external dependency, the Dockhand logo is embedded
 
 ## Prerequisites
