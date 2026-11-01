@@ -140,7 +140,7 @@ const render = async ({ widths, wraps = [], langs, states: stateSets }) => {
     ({ widths, wraps, langs, stateSets, entities, devices }) => {
       const res = [];
       const boxes = [...widths.map((w) => ({ at: `${w}px`, css: `width:${w}px` })), ...wraps];
-      for (const { at, css } of boxes)
+      for (const { at, css, wrapped, childCss, track } of boxes)
         for (const language of langs)
           for (const [st, states] of Object.entries(stateSets))
             for (const [type, zoom] of [
@@ -154,12 +154,17 @@ const render = async ({ widths, wraps = [], langs, states: stateSets }) => {
               const el = document.createElement(type);
               el.setConfig({ type: `custom:${type}`, language });
               el.hass = { states, entities, devices, language, locale: { language }, callService: () => {} };
-              box.appendChild(el);
+              // Card placed directly in the container, or wrapped in a plain <div> (as many layout cards do).
+              const parent = wrapped ? box.appendChild(document.createElement("div")) : box;
+              if (childCss) (wrapped ? parent : el).style.cssText = childCss;
+              parent.appendChild(el);
               if (zoom) el.shadowRoot.querySelector(".zoom").dispatchEvent(new MouseEvent("click", { bubbles: true, composed: true, detail: 1 }));
               const r = el.shadowRoot;
               const label = r.querySelector(".header .chip-label");
               res.push({
                 at: `${zoom ? "mini-zoomed" : type} ${at} ${language} ${st}`,
+                track,
+                overflow: box.scrollWidth - box.clientWidth,
                 card: Math.round(r.querySelector("ha-card").getBoundingClientRect().width),
                 title: Math.round(r.querySelector(".header .name").getBoundingClientRect().width),
                 label: label.textContent,
@@ -192,17 +197,37 @@ test("header chip: its whole label shows from 245 to 500 px, the title keeps a f
   }
 });
 
+// Each context with the card placed directly or wrapped in a <div>.
+const contexts = (list) => list.flatMap((c) => [c, { ...c, at: `${c.at} in a div`, wrapped: true }]);
+
 test("container without a definite width (inline-block, auto grid column): the card keeps a usable width", async (t) => {
   if (skip) return t.skip(skip);
   for (const m of await render({
     widths: [],
-    wraps: [
+    wraps: contexts([
       { at: "inline-block", css: "display:inline-block" },
       { at: "grid auto", css: "display:grid;grid-template-columns:auto;justify-content:start" },
-    ],
+    ]),
     langs: ["en"],
     states: { normal: states },
   })) {
+    t.diagnostic(`${m.at}: card ${m.card}px`);
     assert.ok(m.card >= 240, `${m.at}: card only ${m.card}px wide`);
+  }
+});
+
+test("1fr columns and flex rows narrower than the card's natural width: the card shrinks to its track", async (t) => {
+  if (skip) return t.skip(skip);
+  const wraps = [];
+  for (const w of [320, 360, 500]) {
+    wraps.push({ at: `grid 1fr 1fr ${w}px`, css: `display:grid;grid-template-columns:1fr 1fr;width:${w}px`, track: w / 2 });
+    wraps.push({ at: `grid repeat(3,1fr) ${w}px`, css: `display:grid;grid-template-columns:repeat(3,1fr);width:${w}px`, track: w / 3 });
+    wraps.push({ at: `flex row ${w}px`, css: `display:flex;width:${w}px`, childCss: "flex:1 1 0", track: w });
+    wraps.push({ at: `flex row ${w / 2}px`, css: `display:flex;width:${w / 2}px`, childCss: "flex:1 1 auto", track: w / 2 });
+  }
+  for (const m of await render({ widths: [], wraps: contexts(wraps), langs: ["en"], states: { normal: states } })) {
+    t.diagnostic(`${m.at}: card ${m.card}px, track ${m.track}px, overflow ${m.overflow}px`);
+    assert.ok(m.card > 0 && m.card <= Math.ceil(m.track), `${m.at}: card ${m.card}px in a ${m.track}px track`);
+    assert.ok(m.overflow <= 0, `${m.at}: content ${m.overflow}px wider than the container`);
   }
 });
