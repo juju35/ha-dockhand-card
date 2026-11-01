@@ -123,3 +123,86 @@ test("header chip lines up with the title line when there is a subtitle", async 
     assert.ok(Math.abs(m.chipCenter - m.titleCenter) <= 2, `${m.type} ${m.width}px: chip centre ${m.chipCenter} vs title centre ${m.titleCenter}`);
   }
 });
+
+// Card mounted in `wrapCss` (a box of `width` px, or a container without a definite width), in each
+// language and with every entity normal or unavailable. Returns, per card, the header chip label and title
+// measurements and the ha-card width.
+const render = async ({ widths, wraps = [], langs, states: stateSets }) => {
+  const page = await browser.newPage({ viewport: { width: 1000, height: 1200 } });
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.setContent(
+    `<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;font-family:Roboto,Helvetica,Arial,sans-serif}</style></head><body><div id="root"></div></body></html>`
+  );
+  await page.addScriptTag({ content: HA_CARD });
+  await page.addScriptTag({ content: src });
+  const out = await page.evaluate(
+    ({ widths, wraps, langs, stateSets, entities, devices }) => {
+      const res = [];
+      const boxes = [...widths.map((w) => ({ at: `${w}px`, css: `width:${w}px` })), ...wraps];
+      for (const { at, css } of boxes)
+        for (const language of langs)
+          for (const [st, states] of Object.entries(stateSets))
+            for (const [type, zoom] of [
+              ["dockhand-mini-card", false],
+              ["dockhand-mini-card", true],
+              ["dockhand-card", false],
+            ]) {
+              const box = document.createElement("div");
+              box.style.cssText = css;
+              document.getElementById("root").replaceChildren(box);
+              const el = document.createElement(type);
+              el.setConfig({ type: `custom:${type}`, language });
+              el.hass = { states, entities, devices, language, locale: { language }, callService: () => {} };
+              box.appendChild(el);
+              if (zoom) el.shadowRoot.querySelector(".zoom").dispatchEvent(new MouseEvent("click", { bubbles: true, composed: true, detail: 1 }));
+              const r = el.shadowRoot;
+              const label = r.querySelector(".header .chip-label");
+              res.push({
+                at: `${zoom ? "mini-zoomed" : type} ${at} ${language} ${st}`,
+                card: Math.round(r.querySelector("ha-card").getBoundingClientRect().width),
+                title: Math.round(r.querySelector(".header .name").getBoundingClientRect().width),
+                label: label.textContent,
+                labelShown: getComputedStyle(label).display !== "none",
+                labelCut: label.scrollWidth > label.clientWidth + 0.5,
+              });
+            }
+      return res;
+    },
+    { widths, wraps, langs, stateSets, entities, devices }
+  );
+  await page.close();
+  assert.deepEqual(errors, []);
+  return out;
+};
+
+const unavailable = Object.fromEntries(Object.entries(states).map(([id, s]) => [id, { ...s, state: "unavailable" }]));
+
+test("header chip: its whole label shows from 245 to 500 px, the title keeps a few characters", async (t) => {
+  if (skip) return t.skip(skip);
+  for (const m of await render({
+    widths: [245, 280, 320, 364, 400, 500],
+    langs: ["en", "pl", "sr-Latn"],
+    states: { normal: states, unavailable },
+  })) {
+    t.diagnostic(`${m.at}: title ${m.title}px, chip "${m.label}"`);
+    assert.ok(m.labelShown, `${m.at}: chip reduced to its dot`);
+    assert.equal(m.labelCut, false, `${m.at}: chip label "${m.label}" cut`);
+    assert.ok(m.title >= 40, `${m.at}: title only ${m.title}px wide`);
+  }
+});
+
+test("container without a definite width (inline-block, auto grid column): the card keeps a usable width", async (t) => {
+  if (skip) return t.skip(skip);
+  for (const m of await render({
+    widths: [],
+    wraps: [
+      { at: "inline-block", css: "display:inline-block" },
+      { at: "grid auto", css: "display:grid;grid-template-columns:auto;justify-content:start" },
+    ],
+    langs: ["en"],
+    states: { normal: states },
+  })) {
+    assert.ok(m.card >= 240, `${m.at}: card only ${m.card}px wide`);
+  }
+});
