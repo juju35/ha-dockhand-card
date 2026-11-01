@@ -374,3 +374,67 @@ test("header subtitle hides unavailable or unknown host sensors", () => {
   assert.equal(sub("27.3.1", "unavailable", "socket"), "Docker 27.3.1 · socket");
   assert.equal(sub("27.3.1", "linux", "socket"), "Docker 27.3.1 · linux · socket");
 });
+
+test("an unavailable restart button is disabled and does nothing; a never pressed one (unknown) still works", async () => {
+  const st = (state) => ({ ...baseStates(), "button.web_restart": { entity_id: "button.web_restart", state, attributes: {} } });
+  const el = make(DockhandCard, st("unavailable"));
+  const calls = [];
+  el._hass.callService = (d, s, data) => calls.push(`${d}.${s} ${data.entity_id}`);
+  el._update = () => {};
+  assert.match(el._controls({ restart: "button.web_restart" }, "web"), / disabled>/);
+  el._onClick(click([{ dataset: { action: "restart", entity: "button.web_restart", label: "web" } }]));
+  await null;
+  assert.equal(el._confirm ?? null, null);
+  assert.deepEqual(calls, []);
+  // A button entity is "unknown" until first pressed: that is not unavailable.
+  for (const state of ["unknown", "2026-11-01T10:00:00+00:00"]) {
+    const ok = make(DockhandCard, st(state));
+    ok._update = () => {};
+    assert.doesNotMatch(ok._controls({ restart: "button.web_restart" }, "web"), /disabled/, state);
+    ok._onClick(click([{ dataset: { action: "restart", entity: "button.web_restart", label: "web" } }]));
+    await null;
+    assert.ok(ok._confirm, state);
+  }
+});
+
+test("header chip: an unavailable or unknown online sensor is shown as such, not as Offline", () => {
+  const ents = { ...entities, "binary_sensor.online": { entity_id: "binary_sensor.online", device_id: "env", platform: "dockhand", translation_key: "online" } };
+  const chip = (state, language = "en") => {
+    const el = new DockhandCard();
+    el._config = { language };
+    el._hass = {
+      states: { ...baseStates(), "binary_sensor.online": { entity_id: "binary_sensor.online", state, attributes: {} } },
+      entities: ents,
+      devices,
+      language,
+    };
+    const m = el._render().match(/<span class="chip ([^"]*)"[^>]*>([\s\S]*?)<\/span><\/span>/);
+    return m && `${m[1].split(" ").filter((c) => ["ok", "crit", "idle"].includes(c)).join("")}:${m[2].replace(/<[^>]+>/g, "").trim()}`;
+  };
+  assert.equal(chip("on"), "ok:Online");
+  assert.equal(chip("off"), "crit:Offline");
+  assert.equal(chip("unavailable"), "idle:Unavailable");
+  assert.equal(chip("unknown"), "idle:Unknown");
+  assert.equal(chip("unavailable", "fr"), "idle:Indisponible");
+});
+
+test("the header chip keeps its text in title and aria-label (the label can be hidden on a narrow card)", () => {
+  const ents = { ...entities, "binary_sensor.online": { entity_id: "binary_sensor.online", device_id: "env", platform: "dockhand", translation_key: "online" } };
+  const el = new DockhandCard();
+  el._config = { language: "sr" };
+  el._hass = { states: { ...baseStates(), "binary_sensor.online": { entity_id: "binary_sensor.online", state: "on", attributes: {} } }, entities: ents, devices, language: "sr" };
+  const html = el._render();
+  assert.match(html, /<span class="chip [^"]*"[^>]* title="На мрежи" aria-label="На мрежи"/);
+  assert.match(html, /<span class="chip-label">На мрежи<\/span>/);
+});
+
+test("the confirmation popup is named by its question (aria-labelledby)", async () => {
+  const el = make(DockhandCard, baseStates());
+  el._update = () => {};
+  el._onClick(click([{ dataset: { action: "restart", entity: "button.web_restart", label: "web" } }]));
+  await null;
+  const html = el._confirmHtml();
+  const id = html.match(/role="dialog" aria-modal="true" aria-labelledby="([^"]+)"/)?.[1];
+  assert.ok(id, "no aria-labelledby");
+  assert.match(html, new RegExp(`<div class="msg" id="${id}">Restart web\\?</div>`));
+});
