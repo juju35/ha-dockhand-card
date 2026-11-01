@@ -1,5 +1,6 @@
 // Renders the cards with mock Dockhand data and saves the README screenshots, plus one looping GIF per
 // animation (section folding, gauge transitions, mini card zoom) — the GIFs need ffmpeg on PATH.
+// A capture whose pixels did not change keeps its file untouched (see pixels.mjs).
 // Usage: npm run build && npm run screenshots
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -8,6 +9,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { devices, entities, states } from "./mock-states.mjs";
+import { replaceIfChanged } from "./pixels.mjs";
 import { gifs, shots } from "./screenshot-scenes.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -116,7 +118,9 @@ const recordGif = async (browser, g, fps = 15) => {
       );
     }
     await page.evaluate((t) => {
-      for (const a of document.getAnimations()) {
+      // The card's transitions live in its shadow root, which document.getAnimations() does not list: without
+      // it they ran in real time and each render of a GIF caught them at a different point.
+      for (const a of [...document.getAnimations(), ...window.__card.shadowRoot.getAnimations()]) {
         if (!window.__born.has(a)) window.__born.set(a, window.__eventAt);
         a.pause();
         a.currentTime = Math.max(0, t - window.__born.get(a));
@@ -126,30 +130,37 @@ const recordGif = async (browser, g, fps = 15) => {
   }
   await page.close();
   const out = `${root}screenshots/${g.file}.gif`;
+  const fresh = join(dir, "out.gif");
+  // Deterministic GIF: one palette computed from all the frames and an ordered (Bayer) dither, no random dithering.
   execFileSync("ffmpeg", [
     "-y", "-loglevel", "error", "-framerate", String(fps), "-i", join(dir, "f%03d.png"),
     "-vf", `scale=${clip.width}:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=4`,
-    "-loop", "0", out,
+    "-loop", "0", fresh,
   ]);
+  const written = replaceIfChanged(fresh, out);
   rmSync(dir, { recursive: true });
-  console.log(`screenshots/${g.file}.gif`);
+  console.log(`screenshots/${g.file}.gif${written ? "" : " (unchanged)"}`);
 };
 
 const browser = await chromium.launch(
   process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}
 );
+const shotDir = mkdtempSync(join(tmpdir(), "dh-shots-"));
 for (const s of shots) {
   // A fresh page for each capture: the card script declares its classes and custom elements once per page.
   const page = await openCard(browser, s);
   await page.waitForTimeout(800);
   const box = await page.locator("#root").boundingBox();
+  const fresh = join(shotDir, `${s.file}.png`);
   await page.screenshot({
-    path: `${root}screenshots/${s.file}.png`,
+    path: fresh,
     clip: { x: 0, y: 0, width: s.width + 32, height: Math.ceil(box.height) + 32 },
     animations: "disabled",
   });
-  console.log(`screenshots/${s.file}.png`);
+  const written = replaceIfChanged(fresh, `${root}screenshots/${s.file}.png`);
+  console.log(`screenshots/${s.file}.png${written ? "" : " (unchanged)"}`);
   await page.close();
 }
+rmSync(shotDir, { recursive: true });
 for (const g of gifs) await recordGif(browser, g);
 await browser.close();

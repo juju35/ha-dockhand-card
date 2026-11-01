@@ -48,6 +48,13 @@ const STRINGS = {
     updates_lc: "updates",
     running: "running",
     cores: "cores",
+    // Counted nouns: forms picked by Intl.PluralRules (one, few, many); the key without suffix is the
+    // fallback (other, or a count that is not a number).
+    containers_lc_one: "container",
+    stacks_lc_one: "stack",
+    images_lc_one: "image",
+    updates_lc_one: "update",
+    cores_one: "core",
     online: "Online",
     offline: "Offline",
     update_available: "Update available",
@@ -110,6 +117,11 @@ const STRINGS = {
     updates_lc: "mises à jour",
     running: "actifs",
     cores: "cœurs",
+    containers_lc_one: "conteneur",
+    stacks_lc_one: "stack",
+    images_lc_one: "image",
+    updates_lc_one: "mise à jour",
+    cores_one: "cœur",
     online: "En ligne",
     offline: "Hors ligne",
     update_available: "Mise à jour disponible",
@@ -171,6 +183,11 @@ const STRINGS = {
     updates_lc: "Updates",
     running: "aktiv",
     cores: "Kerne",
+    containers_lc_one: "Container",
+    stacks_lc_one: "Stack",
+    images_lc_one: "Image",
+    updates_lc_one: "Update",
+    cores_one: "Kern",
     online: "Online",
     offline: "Offline",
     update_available: "Update verfügbar",
@@ -232,6 +249,11 @@ const STRINGS = {
     updates_lc: "actualizaciones",
     running: "en ejecución",
     cores: "núcleos",
+    containers_lc_one: "contenedor",
+    stacks_lc_one: "stack",
+    images_lc_one: "imagen",
+    updates_lc_one: "actualización",
+    cores_one: "núcleo",
     online: "En línea",
     offline: "Sin conexión",
     update_available: "Actualización disponible",
@@ -293,6 +315,16 @@ const STRINGS = {
     updates_lc: "ажурирања",
     running: "покренути",
     cores: "језгара",
+    containers_lc_one: "контејнер",
+    stacks_lc_one: "стек",
+    images_lc_one: "слика",
+    updates_lc_one: "ажурирање",
+    cores_one: "језгро",
+    containers_lc_few: "контејнера",
+    stacks_lc_few: "стека",
+    images_lc_few: "слике",
+    updates_lc_few: "ажурирања",
+    cores_few: "језгра",
     online: "На мрежи",
     offline: "Ван мреже",
     update_available: "Доступно ажурирање",
@@ -354,6 +386,16 @@ const STRINGS = {
     updates_lc: "ažuriranja",
     running: "pokrenuti",
     cores: "jezgara",
+    containers_lc_one: "kontejner",
+    stacks_lc_one: "stek",
+    images_lc_one: "slika",
+    updates_lc_one: "ažuriranje",
+    cores_one: "jezgro",
+    containers_lc_few: "kontejnera",
+    stacks_lc_few: "steka",
+    images_lc_few: "slike",
+    updates_lc_few: "ažuriranja",
+    cores_few: "jezgra",
     online: "Na mreži",
     offline: "Van mreže",
     update_available: "Dostupno ažuriranje",
@@ -415,6 +457,11 @@ const STRINGS = {
     updates_lc: "aggiornamenti",
     running: "in esecuzione",
     cores: "core",
+    containers_lc_one: "container",
+    stacks_lc_one: "stack",
+    images_lc_one: "immagine",
+    updates_lc_one: "aggiornamento",
+    cores_one: "core",
     online: "Online",
     offline: "Offline",
     update_available: "Aggiornamento disponibile",
@@ -476,6 +523,11 @@ const STRINGS = {
     updates_lc: "updates",
     running: "actief",
     cores: "cores",
+    containers_lc_one: "container",
+    stacks_lc_one: "stack",
+    images_lc_one: "image",
+    updates_lc_one: "update",
+    cores_one: "core",
     online: "Online",
     offline: "Offline",
     update_available: "Update beschikbaar",
@@ -537,6 +589,11 @@ const STRINGS = {
     updates_lc: "atualizações",
     running: "em execução",
     cores: "núcleos",
+    containers_lc_one: "contentor",
+    stacks_lc_one: "stack",
+    images_lc_one: "imagem",
+    updates_lc_one: "atualização",
+    cores_one: "núcleo",
     online: "Online",
     offline: "Offline",
     update_available: "Atualização disponível",
@@ -676,13 +733,17 @@ const lang = (hass, config) => {
 const t = (hass, config, key, vars = {}) =>
   String(STRINGS[lang(hass, config)][key] ?? STRINGS.en[key] ?? key).replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
 
+// Plural rules of a dictionary: pt is European Portuguese, where 0 takes the plural (Intl's "pt" is Brazilian).
+const pluralLocale = (code) => (code === "pt" ? "pt-PT" : code);
+
 // Counted noun ("4 cores"): the language's Intl.PluralRules form (key_one, key_few, key_many…) when the
-// dictionary has it, else `oneKey` for 1 when given, else the key itself.
+// dictionary has it, else `oneKey` for 1 when given, else the key itself. A count that is not a number
+// (null, a dash, "unavailable") keeps the key itself.
 const tn = (hass, config, key, n, oneKey) => {
   const code = lang(hass, config);
-  const v = Number(n);
+  const v = n === null || n === undefined || n === "" ? Number.NaN : Number(n);
   if (Number.isFinite(v)) {
-    const form = STRINGS[code][`${key}_${new Intl.PluralRules(code).select(v)}`];
+    const form = STRINGS[code][`${key}_${new Intl.PluralRules(pluralLocale(code)).select(v)}`];
     if (form) return form;
     if (v === 1 && oneKey) return t(hass, config, oneKey);
   }
@@ -888,7 +949,15 @@ const findEnv = (hass, config) => {
 const BASE_STYLE = `
   :host { --dh-orange: #f26b21; --dh-ok: var(--success-color, #43a047); --dh-warn: var(--warning-color, #ffa600);
           --dh-crit: var(--error-color, #db4437); --dh-idle: var(--disabled-text-color, #9e9e9e); }
-  ha-card { overflow: hidden; }
+  /* Query container: the header, the mini card rows and the gauges adapt to the card width (Sections view). */
+  :host { display: block; }
+  ha-card { overflow: hidden; container-type: inline-size; }
+  /* A size container has no content width: in a parent that sizes to its content (inline-block, "auto" grid
+     column of layout-card / button-card) the card would fall to a few pixels. This empty, zero-height grid
+     gives the card a natural (max-content) width of 300 px with no minimum (its min-content width is 0), so in
+     a "1fr" grid column or a flex row, wrapped in a div or not, the card still shrinks to its track.
+     contain-intrinsic-inline-size or a min-width on the host would be a minimum and overflow there. */
+  :host::before { content: ""; display: grid; grid-template-columns: minmax(0, 300px); height: 0; }
   .icon { width: 18px; height: 18px; fill: currentColor; flex: none; }
   .muted { color: var(--secondary-text-color); }
   .clickable { cursor: pointer; }
@@ -902,7 +971,25 @@ const BASE_STYLE = `
   .header { display: flex; align-items: center; gap: 10px; padding: 12px 12px 8px; }
   .logo { height: 40px; width: 40px; object-fit: contain; flex: none; }
   a.logo-link { display: flex; flex: none; }
-  .titles { flex: 1; min-width: 0; }
+  /* The title block takes what the chip and buttons leave (flex basis 0) and shrinks with an ellipsis down to
+     a few characters; only then does the chip cut its label. */
+  .titles { flex: 1 1 0; min-width: 5ch; }
+  .header .chip { flex: 0 1 auto; min-width: 0; overflow: hidden; line-height: 16px; box-sizing: border-box; }
+  /* Unavailable / unknown: the dot stays grey, the text takes the primary text colour (grey text on a grey
+     tint would stay under 4.5:1). */
+  .header .chip.idle { color: var(--primary-text-color); }
+  .chip-label { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* With a subtitle, the title block starts at the top and the 18 px chip is centred on the 20 px title
+     line, not on the two lines. */
+  .header:has(.sub) .titles { align-self: flex-start; }
+  .header:has(.sub) .chip { align-self: flex-start; margin-top: 1px; }
+  @container (max-width: 239px) {
+    .header { gap: 6px; }
+    .header .logo { height: 32px; width: 32px; }
+    /* Only the coloured dot, in an 18 px chip that no longer shrinks: its text stays in title and aria-label. */
+    .header .chip { flex: none; padding: 6px; }
+    .header .chip .chip-label { display: none; }
+  }
   .name { font-size: 16px; font-weight: 500; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sub { font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .warning { padding: 16px; color: var(--dh-warn); }
@@ -1091,6 +1178,9 @@ class DockhandBase extends HTMLElement {
       this._folds = { ...this._folds, [el.dataset.section]: !this._isOpen(el.dataset.section) };
       this._update();
     } else if (action === "restart") {
+      // Unavailable: nothing to restart (the button is disabled, keyboard included). A button entity is
+      // "unknown" until first pressed, which is not a reason to block it.
+      if (this._s(entity)?.state === "unavailable") return;
       this._openConfirm(
         {
           text: this._t("confirm_restart", { name: label }),
@@ -1146,8 +1236,8 @@ class DockhandBase extends HTMLElement {
   _confirmHtml() {
     const c = this._confirm;
     return `<div class="backdrop" data-action="confirm_backdrop">
-      <div class="modal" role="dialog" aria-modal="true">
-        <div class="msg">${esc(c.text)}</div>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-msg">
+        <div class="msg" id="confirm-msg">${esc(c.text)}</div>
         <div class="modal-actions">
           <button type="button" class="btn" data-action="confirm_cancel">${esc(this._t("cancel"))}</button>
           <button type="button" class="btn primary" data-action="confirm_ok">${esc(c.ok)}</button>
@@ -1169,7 +1259,10 @@ class DockhandBase extends HTMLElement {
   _header(env) {
     const c = this._config;
     const online = this._s(env.entities.online);
-    const isOnline = !online || online.state === "on";
+    // on / off: online or offline; unavailable or unknown: said so (grey), never shown as offline.
+    const [chipCls, chipKey] =
+      online?.state === "on" ? ["ok", "online"] : online?.state === "off" ? ["crit", "offline"] : ["idle", `state_${online?.state === "unknown" ? "unknown" : "unavailable"}`];
+    const chipText = esc(this._t(chipKey));
     const docker = this._s(env.entities.host_docker_version)?.state;
     const platform = this._s(env.entities.host_platform)?.state;
     const conn = this._s(env.entities.connection_type)?.state;
@@ -1187,9 +1280,7 @@ class DockhandBase extends HTMLElement {
         </div>
         ${
           online
-            ? `<span class="chip clickable ${isOnline ? "ok" : "crit"}" role="button" tabindex="0" data-entity="${esc(online.entity_id)}"><span class="dot"></span>${this._t(
-                isOnline ? "online" : "offline"
-              )}</span>`
+            ? `<span class="chip clickable ${chipCls}" role="button" tabindex="0" data-entity="${esc(online.entity_id)}" title="${chipText}" aria-label="${chipText}"><span class="dot"></span><span class="chip-label">${chipText}</span></span>`
             : ""
         }
         ${this._zoomButton()}
@@ -1247,17 +1338,25 @@ const FULL_STYLE = `
   .section-title .chevron { transition: transform .2s ease; }
   .section-title.closed { margin-bottom: 0; }
   .section-title.closed .chevron { transform: rotate(-90deg); }
-  .gauges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .gauge { display: flex; flex-direction: column; align-items: center; position: relative; }
-  .ring { width: 60px; height: 60px; transform: rotate(-90deg); }
+  .gauges { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .gauge { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+  /* Ring of 60 px, smaller when the column is narrower (6 columns of a small Sections view). */
+  .gauge .gw { position: relative; width: min(60px, 100%); aspect-ratio: 1; }
+  .ring { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
   .ring circle { fill: none; stroke-width: 6; }
   .ring .track { stroke: var(--divider-color, rgba(127,127,127,.25)); }
   .ring .value { stroke: var(--c, var(--dh-orange)); stroke-linecap: round; transition: stroke-dasharray .6s ease; }
-  .gauge .val { position: absolute; top: 0; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .gauge .val { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   .gauge .val b { font-size: 14px; font-weight: 500; }
   .gauge .val .icon { width: 12px; height: 12px; color: var(--secondary-text-color); }
   .gauge .lbl { font-size: 12px; color: var(--secondary-text-color); margin-top: 0; text-align: center; line-height: 1.35; }
   .gauge .lbl small { display: block; font-size: 11px; opacity: .85; }
+  .gauge .lbl { max-width: 100%; overflow-wrap: break-word; }
+  @container (max-width: 299px) {
+    .gauge .val .icon { display: none; }
+    .gauge .val b { font-size: 11px; }
+    .gauge .lbl, .gauge .lbl small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  }
   .counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); gap: 6px; }
   .count-tile { display: flex; flex-direction: column; align-items: center; gap: 0; padding: 6px 4px; border-radius: 10px;
                 background: var(--secondary-background-color, rgba(127,127,127,.08)); min-width: 0; text-align: center; }
@@ -1340,8 +1439,7 @@ class DockhandCard extends DockhandBase {
 
   _gauge(id, label, icon, pct, display, cls) {
     return `<div class="gauge clickable ${cls}" role="button" tabindex="0" data-entity="${esc(id || "")}">
-      ${ring(pct)}
-      <div class="val">${svgIcon(icon)}<b>${display}</b></div>
+      <div class="gw">${ring(pct)}<div class="val">${svgIcon(icon)}<b>${display}</b></div></div>
       <div class="lbl">${label}</div>
     </div>`;
   }
@@ -1402,11 +1500,12 @@ class DockhandCard extends DockhandBase {
     if (this._config.show_controls === false) return "";
     const sw = entities._switch && this._s(entities._switch);
     const out = [];
-    if (entities.restart && this._s(entities.restart))
+    const rs = entities.restart && this._s(entities.restart);
+    if (rs)
       out.push(
         `<button type="button" class="ctrl" title="${esc(this._t("restart"))}" data-key="restart" data-action="restart" data-entity="${esc(entities.restart)}" data-label="${esc(
           label
-        )}">${svgIcon(ICONS.restart)}</button>`
+        )}"${rs.state === "unavailable" ? " disabled" : ""}>${svgIcon(ICONS.restart)}</button>`
       );
     // An unavailable or unknown switch cannot be started or stopped: its button is shown disabled.
     if (sw)
@@ -1547,11 +1646,17 @@ const MINI_STYLE = `
   a.logo-link { align-self: flex-start; }
   .name { font-size: 16px; }
   .content { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; }
-  .metric { display: grid; grid-template-columns: 18px 86px 1fr 52px; align-items: center; gap: 8px; font-size: 13px; }
+  /* Label column of up to 86 px (the bars line up across rows), a bar of at least 24 px, the value at its width. */
+  .metric { display: grid; grid-template-columns: 18px minmax(0, 86px) minmax(24px, 1fr) minmax(44px, auto); align-items: center; gap: 8px; font-size: 13px; }
   .metric .icon { color: var(--secondary-text-color); }
   /* Fixed label column (the bars line up across rows): a longer translation is cut, never drawn over the bar. */
   .metric .lbl { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .metric .v { text-align: right; font-weight: 500; }
+  .metric .v { text-align: right; font-weight: 500; white-space: nowrap; }
+  @container (max-width: 229px) {
+    /* Narrow card (6 columns of a small Sections view): the icon names the row, the label stays in aria-label. */
+    .metric { grid-template-columns: 18px minmax(24px, 1fr) minmax(44px, auto); gap: 6px; }
+    .metric .lbl { display: none; }
+  }
   .foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--secondary-text-color); margin-top: 2px; flex-wrap: wrap; }
   .foot span { display: inline-flex; align-items: center; gap: 4px; }
   .foot .icon { width: 14px; height: 14px; }
@@ -1614,8 +1719,8 @@ class DockhandMiniCard extends DockhandCard {
     if (!ev.target?.closest?.(".zoom")) return;
     ev.stopPropagation();
     this._setZoom(!this._zoomed);
-    // Keyboard use (Enter / Space: no click count) keeps the focus on the button.
-    if (ev.detail === 0) this.shadowRoot.querySelector(".zoom")?.focus();
+    // Keyboard use (Enter / Space: no click count) keeps the focus on the button, without scrolling the view.
+    if (ev.detail === 0) this.shadowRoot.querySelector(".zoom")?.focus({ preventScroll: true });
   }
 
   _zoomButton() {
@@ -1625,7 +1730,7 @@ class DockhandMiniCard extends DockhandCard {
   }
 
   _metric(id, icon, label, pct, display, cls) {
-    return `<div class="metric clickable ${cls}" role="button" tabindex="0" data-entity="${esc(id || "")}">
+    return `<div class="metric clickable ${cls}" role="button" tabindex="0" data-entity="${esc(id || "")}" aria-label="${esc(label)} ${display}">
       ${svgIcon(icon)}<span class="lbl">${label}</span>
       <div class="bar"><div style="width:${pct === null ? 0 : Math.max(0, Math.min(100, pct))}%"></div></div>
       <span class="v">${display}</span>

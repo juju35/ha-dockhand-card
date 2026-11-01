@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.11.6 - 2026-11-01
+
+### Fixed
+- Counted nouns are singular for 1 in every language ("1 update", "1 stack", "1 image", "1 core" instead of "1 updates"…), and Serbian (Cyrillic and Latin) uses its three forms: 1 стек, 2 стека, 5 стекова, 21 стек (same for images, updates, cores and containers). European Portuguese keeps 0 in the plural.
+- The cards stay readable at their smallest Sections width (6 columns, about 160 px): the mini card bars and values no longer disappear or get cut, its labels give way to the row icons, the full card gauges shrink to fit, and the header title always keeps a few characters while the status chip falls back to its coloured dot.
+- The header status chip lines up with the title line when there is a subtitle.
+- An unavailable or unknown "online" sensor now shows "Unavailable" / "Unknown" in grey instead of a red "Offline".
+- The restart button of an unavailable stack or container is disabled.
+- Screen readers announce the question of the confirmation popup ("Restart auth?").
+- The header status chip shows its whole label ("Online", "Unavailable"…) at usual card widths (245 px and up) instead of being cut to "Onl…" while the title had room to spare.
+- Using the mini card detail button from the keyboard no longer scrolls the dashboard to the card.
+- In a container without a set width (an inline-block or `auto` grid column of layout-card / button-card), the cards no longer collapse to a few pixels: they take a natural width of 300 px, and still shrink to their column in a `1fr` grid (layout-card, grid card) or a flex row, without overflowing it.
+
 ## 1.11.5 - 2026-11-01
 
 ### Added

@@ -84,3 +84,41 @@ test("reordered stacks without moveBefore: Enter never acts on another stack", a
   assert.ok(r.focused === null || r.focused === "switch.host_stacks_auth", `focus moved to ${r.focused}`);
   assert.ok(r.calls.every((c) => c.endsWith(" switch.host_stacks_auth")), `unexpected calls: ${r.calls}`);
 });
+
+// Detail button of the mini card used from the keyboard (Enter / Space: click with detail 0): the card
+// re-renders and the focus is put back on the new button. That must never scroll the dashboard.
+test("mini card detail button: the focus is put back without scrolling", async (t) => {
+  if (skip) return t.skip(skip);
+  const page = await browser.newPage({ viewport: { width: 400, height: 300 } });
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.setContent("<!doctype html><body style='margin:0'><div style='height:2000px'></div><div id=root></div><div style='height:2000px'></div></body>");
+  await page.addScriptTag({
+    content: `customElements.define("ha-card", class extends HTMLElement { constructor() { super(); this.attachShadow({ mode: "open" }).innerHTML = "<slot></slot>"; } });`,
+  });
+  await page.addScriptTag({ content: src });
+  const r = await page.evaluate(
+    ({ states, entities, devices }) => {
+      const el = document.createElement("dockhand-mini-card");
+      el.setConfig({ type: "custom:dockhand-mini-card" });
+      el.hass = { states, entities, devices, language: "en", callService: () => {} };
+      document.getElementById("root").appendChild(el);
+      const calls = [];
+      const focus = HTMLElement.prototype.focus;
+      HTMLElement.prototype.focus = function (opts) {
+        if (this.classList?.contains("zoom")) calls.push(opts ?? null);
+        return focus.call(this, opts);
+      };
+      window.scrollTo(0, 0);
+      el.shadowRoot.querySelector(".zoom").dispatchEvent(new MouseEvent("click", { bubbles: true, composed: true, detail: 0 }));
+      HTMLElement.prototype.focus = focus;
+      return { calls, scrollY: window.scrollY, focused: el.shadowRoot.activeElement?.className ?? null };
+    },
+    { states, entities, devices }
+  );
+  await page.close();
+  assert.deepEqual(errors, []);
+  assert.equal(r.focused, "zoom");
+  assert.deepEqual(r.calls, [{ preventScroll: true }]);
+  assert.equal(r.scrollY, 0);
+});
